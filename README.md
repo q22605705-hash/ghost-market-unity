@@ -21,3 +21,9 @@ Because Unity Package Manager can fail on Windows paths containing Chinese chara
 ```
 
 The helper was verified with Unity batchmode and compiled `GhostMarket.dll` successfully.
+
+## Playable Link
+
+Playable web build:
+
+https://q22605705-hash.github.io/ghost-market-unity/
