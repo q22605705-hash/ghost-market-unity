@@ -7,7 +7,7 @@ build-output.log
 playtest-*.png
 pages-*.png
 unity-webgl-*.png
-survivor-*.png
+/survivor-*.png
 UnityProject/Library/
 UnityProject/Temp/
 UnityProject/Obj/
