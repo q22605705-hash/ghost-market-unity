@@ -1,0 +1,93 @@
+{
+  "hero": {
+    "source": "GPT generated chroma-key art, processed with local Luma Key, frame crop, and normalization",
+    "birefnet": "BiRefNet hook point: replace the Luma Key matte in this script when a local BiRefNet model runner is available.",
+    "key": "hero",
+    "texture": "assets/characters/hero.png",
+    "columns": 12,
+    "rows": 4,
+    "frameWidth": 160,
+    "frameHeight": 160,
+    "animations": {
+      "idle": {
+        "row": 0,
+        "frames": 12,
+        "fps": 10
+      },
+      "run": {
+        "row": 1,
+        "frames": 12,
+        "fps": 15
+      },
+      "attack": {
+        "row": 2,
+        "frames": 12,
+        "fps": 18
+      },
+      "jump": {
+        "row": 3,
+        "frames": 12,
+        "fps": 12
+      }
+    }
+  },
+  "imp": {
+    "source": "GPT generated chroma-key art, processed with local Luma Key, frame crop, and normalization",
+    "birefnet": "BiRefNet hook point: replace the Luma Key matte in this script when a local BiRefNet model runner is available.",
+    "key": "imp",
+    "texture": "assets/characters/imp.png",
+    "columns": 12,
+    "rows": 1,
+    "frameWidth": 96,
+    "frameHeight": 96,
+    "animations": {
+      "move": {
+        "row": 0,
+        "frames": 12,
+        "fps": 12
+      }
+    }
+  },
+  "brute": {
+    "source": "GPT generated chroma-key art, processed with local Luma Key, frame crop, and normalization",
+    "birefnet": "BiRefNet hook point: replace the Luma Key matte in this script when a local BiRefNet model runner is available.",
+    "key": "brute",
+    "texture": "assets/characters/brute.png",
+    "columns": 12,
+    "rows": 1,
+    "frameWidth": 128,
+    "frameHeight": 128,
+    "animations": {
+      "move": {
+        "row": 0,
+        "frames": 12,
+        "fps": 10
+      }
+    }
+  },
+  "boss": {
+    "source": "GPT generated chroma-key art, processed with local Luma Key, frame crop, and normalization",
+    "birefnet": "BiRefNet hook point: replace the Luma Key matte in this script when a local BiRefNet model runner is available.",
+    "key": "boss",
+    "texture": "assets/characters/boss.png",
+    "columns": 12,
+    "rows": 1,
+    "frameWidth": 192,
+    "frameHeight": 192,
+    "animations": {
+      "idle": {
+        "row": 0,
+        "frames": 12,
+        "fps": 10
+      }
+    }
+  },
+  "market": {
+    "source": "GPT generated environment art",
+    "texture": "assets/environment/market-bg.png"
+  },
+  "platform": {
+    "source": "GPT generated chroma-key platform art, processed with local Luma Key",
+    "texture": "assets/environment/platform.png"
+  }
+}

@@ -1,0 +1,30 @@
+export const heroMeta = {
+  "source": "GPT generated chroma-key sprite sheet, processed with local Luma Key",
+  "birefnet": "BiRefNet was not run automatically; this file is ready for replacement by a BiRefNet matte if the local model is connected.",
+  "columns": 12,
+  "rows": 4,
+  "frameWidth": 128,
+  "frameHeight": 128,
+  "animations": {
+    "idle": {
+      "row": 0,
+      "frames": 12,
+      "fps": 10
+    },
+    "run": {
+      "row": 1,
+      "frames": 12,
+      "fps": 15
+    },
+    "attack": {
+      "row": 2,
+      "frames": 12,
+      "fps": 18
+    },
+    "jump": {
+      "row": 3,
+      "frames": 12,
+      "fps": 12
+    }
+  }
+} as const;

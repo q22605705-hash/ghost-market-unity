@@ -3,7 +3,9 @@ dist/
 .vite/
 npm-debug.log*
 vite.log
+build-output.log
 playtest-*.png
+pages-*.png
 UnityProject/Library/
 UnityProject/Temp/
 UnityProject/Obj/
