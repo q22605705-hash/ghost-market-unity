@@ -6,6 +6,7 @@ vite.log
 build-output.log
 playtest-*.png
 pages-*.png
+unity-webgl-*.png
 UnityProject/Library/
 UnityProject/Temp/
 UnityProject/Obj/
