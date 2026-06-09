@@ -1,0 +1,15 @@
+{
+  "source": "GPT pixel-art green-screen sheet, processed by local Luma Key",
+  "raw": "assets/raw/gpt-pixel-survivor-greenscreen.png",
+  "texture": "assets/survivor-sprites.png",
+  "cell": 128,
+  "rows": {
+    "heroIdle": 0,
+    "heroRun": 1,
+    "ghoul": 2,
+    "mage": 3,
+    "brute": 4,
+    "soulAndFire": 5
+  },
+  "columns": 12
+}
