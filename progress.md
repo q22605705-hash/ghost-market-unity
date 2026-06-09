@@ -19,11 +19,15 @@ Gameplay implemented
 - Upgrade pool includes damage, attack speed, movement speed, magnet, max HP, orbit blade count, weapon area, pierce, and regeneration.
 
 Art pipeline
-- Pixel-art source sheet is generated as a green-screen sheet.
+- Pixel-art source sheet is generated with GPT as a green-screen sprite sheet.
 - Local Luma Key pass removes the green background into transparency.
-- Verification confirmed 877,664 transparent pixels and 0 opaque green pixels in survivor/assets/survivor-sprites.png.
+- The integrated GPT sheet is 1536x1024 with 8 rows and 12 columns: hero idle, hero run, ghoul, mage, brute, soul pickup, enemy fireball, talisman projectile / orbit blade.
+- Verification confirmed 1,155,042 transparent pixels and 0 opaque green pixels in survivor/assets/survivor-sprites.png.
+- A cleanup pass removes cross-row debris from the soul pickup row so cropped sprites do not leave brown fragments in gameplay.
 
 Testing
 - Local server smoke test returned HTTP 200.
 - Playwright local menu and gameplay checks passed with screenshots.
 - Long simulation reached around 75 seconds, level 13, 172 kills, 26 active enemies, ranged enemies and enemy bullets present, with no page errors or failed asset requests.
+- After integrating GPT art, Playwright confirmed survivor-sprites.png loaded at 1536x1024 and gameplay actors are drawn from the PNG sheet.
+- GPT art gameplay screenshot reached around 30 seconds, level 8, 63 kills, with mage, brute, enemy fireball, talisman projectile, orbit blades, and soul pickups visible.

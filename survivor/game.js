@@ -9,6 +9,17 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 
+const ROW = {
+  heroIdle: 0,
+  heroRun: 1,
+  ghoul: 2,
+  mage: 3,
+  brute: 4,
+  soul: 5,
+  fire: 6,
+  talismanBlade: 7
+};
+
 const sprites = new Image();
 sprites.src = "./assets/survivor-sprites.png";
 
@@ -20,17 +31,17 @@ let last = performance.now();
 let fixedMode = false;
 
 const state = {
-  mode: "menu",
+  mode: "loading",
   time: 0,
   kills: 0,
   level: 1,
   xp: 0,
-  xpNeed: 12,
+  xpNeed: 8,
   shake: 0,
   freeze: 0,
   spawnT: 0,
-  mageT: 9,
-  eliteT: 24,
+  mageT: 0,
+  eliteT: 0,
   message: "",
   camera: { x: 0, y: 0 },
   player: null,
@@ -38,7 +49,6 @@ const state = {
   bullets: [],
   enemyBullets: [],
   pickups: [],
-  slash: [],
   damageText: [],
   options: [],
   stats: null
@@ -54,15 +64,14 @@ function resetGame() {
   state.shake = 0;
   state.freeze = 0;
   state.spawnT = 0;
-  state.mageT = 16;
-  state.eliteT = 38;
+  state.mageT = 12;
+  state.eliteT = 30;
   state.message = "撐住怪潮，吃魂火升級。";
   state.camera = { x: 0, y: 0 };
   state.enemies = [];
   state.bullets = [];
   state.enemyBullets = [];
   state.pickups = [];
-  state.slash = [];
   state.damageText = [];
   state.options = [];
   state.stats = {
@@ -92,12 +101,12 @@ function resetGame() {
     dashT: 0,
     anim: 0
   };
-  for (let i = 0; i < 8; i++) spawnEnemy("ghoul");
+  for (let i = 0; i < 10; i++) spawnEnemy("ghoul");
 }
 
 function startMenu() {
   state.mode = "menu";
-  state.message = "符火夜行";
+  state.message = "像素割草新版本";
 }
 
 function rand(a, b) {
@@ -109,9 +118,7 @@ function clamp(v, a, b) {
 }
 
 function dist(a, b) {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return Math.hypot(dx, dy);
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 function norm(dx, dy) {
@@ -136,11 +143,19 @@ function spawnEnemy(kind = "ghoul") {
   const pos = edgeSpawn();
   const minute = state.time / 60;
   const templates = {
-    ghoul: { hp: 32 + minute * 9, speed: 64 + minute * 5, damage: 5, radius: 19, xp: 7 },
-    mage: { hp: 50 + minute * 13, speed: 46 + minute * 3, damage: 6, radius: 18, xp: 14, shoot: rand(1.8, 2.8) },
-    brute: { hp: 132 + minute * 30, speed: 36 + minute * 3, damage: 13, radius: 29, xp: 30 }
+    ghoul: { hp: 32 + minute * 9, speed: 66 + minute * 5, damage: 5, radius: 19, xp: 7 },
+    mage: { hp: 52 + minute * 13, speed: 46 + minute * 3, damage: 6, radius: 18, xp: 14, shoot: rand(1.5, 2.4) },
+    brute: { hp: 140 + minute * 30, speed: 38 + minute * 3, damage: 13, radius: 29, xp: 30 }
   };
-  state.enemies.push({ kind, ...pos, ...templates[kind], maxHp: templates[kind].hp, hit: 0, contact: 0, anim: Math.random() * 12 });
+  const template = templates[kind];
+  state.enemies.push({
+    kind,
+    ...pos,
+    ...template,
+    maxHp: template.hp,
+    hit: 0,
+    anim: Math.random() * 12
+  });
 }
 
 function nearestEnemy(max = Infinity) {
@@ -157,7 +172,7 @@ function nearestEnemy(max = Infinity) {
 }
 
 function fireAtNearest() {
-  const target = nearestEnemy(720);
+  const target = nearestEnemy(760);
   if (!target) return;
   const p = state.player;
   const d = norm(target.x - p.x, target.y - p.y);
@@ -166,29 +181,29 @@ function fireAtNearest() {
     y: p.y + d.y * 24,
     vx: d.x * state.stats.projectileSpeed,
     vy: d.y * state.stats.projectileSpeed,
+    angle: Math.atan2(d.y, d.x),
     r: 8 * state.stats.area,
     life: 1.3,
     damage: state.stats.damage,
     pierce: state.stats.pierce,
-    row: 5,
-    frameBase: 6
+    anim: 0
   });
 }
 
 function radialBurst() {
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * TWO_PI;
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * TWO_PI;
     state.bullets.push({
       x: state.player.x,
       y: state.player.y,
-      vx: Math.cos(a) * 520,
-      vy: Math.sin(a) * 520,
+      vx: Math.cos(a) * 540,
+      vy: Math.sin(a) * 540,
+      angle: a,
       r: 9 * state.stats.area,
       life: 0.75,
-      damage: state.stats.damage * 0.8,
+      damage: state.stats.damage * 0.85,
       pierce: 1,
-      row: 5,
-      frameBase: 6
+      anim: 0
     });
   }
 }
@@ -228,12 +243,12 @@ const upgradePool = [
   { name: "符火加速", desc: "攻擊間隔 -12%", apply: () => state.stats.fireRate *= 0.88 },
   { name: "劍符增傷", desc: "傷害 +7", apply: () => state.stats.damage += 7 },
   { name: "疾行靴", desc: "移動速度 +12%", apply: () => state.stats.speed *= 1.12 },
-  { name: "磁魂鈴", desc: "拾取距離 +45", apply: () => state.stats.magnet += 45 },
+  { name: "聚魂鈴", desc: "吸取範圍 +45", apply: () => state.stats.magnet += 45 },
   { name: "護命符", desc: "最大生命 +25 並治療", apply: () => { state.stats.maxHp += 25; state.player.hp = Math.min(state.stats.maxHp, state.player.hp + 45); } },
-  { name: "旋刃", desc: "多一把環繞刀", apply: () => state.stats.blades += 1 },
-  { name: "大符紙", desc: "投射物範圍 +16%", apply: () => state.stats.area *= 1.16 },
-  { name: "穿魂火", desc: "投射物穿透 +1", apply: () => state.stats.pierce += 1 },
-  { name: "回春香", desc: "每秒回血 +0.8", apply: () => state.stats.regen += 0.8 }
+  { name: "旋刃", desc: "增加一把環繞刀", apply: () => state.stats.blades += 1 },
+  { name: "大符紙", desc: "武器尺寸 +16%", apply: () => state.stats.area *= 1.16 },
+  { name: "穿透符", desc: "符咒穿透 +1", apply: () => state.stats.pierce += 1 },
+  { name: "回春印", desc: "每秒回血 +0.8", apply: () => state.stats.regen += 0.8 }
 ];
 
 function openLevelUp() {
@@ -249,6 +264,7 @@ function chooseUpgrade(i) {
   opt.apply();
   state.options = [];
   state.mode = "playing";
+  state.message = `${opt.name} 已強化`;
 }
 
 function update(dt) {
@@ -274,16 +290,18 @@ function updatePlayer(dt) {
   const right = keys.has("d") || keys.has("arrowright");
   const up = keys.has("w") || keys.has("arrowup");
   const down = keys.has("s") || keys.has("arrowdown");
-  const dir = norm((right ? 1 : 0) - (left ? 1 : 0), (down ? 1 : 0) - (up ? 1 : 0));
   const moving = left || right || up || down;
-  if (moving) {
-    p.x += dir.x * state.stats.speed * dt;
-    p.y += dir.y * state.stats.speed * dt;
-    p.facing = dir.x < -0.05 ? -1 : dir.x > 0.05 ? 1 : p.facing;
-  }
+  const dir = moving ? norm((right ? 1 : 0) - (left ? 1 : 0), (down ? 1 : 0) - (up ? 1 : 0)) : { x: 0, y: 0 };
+  p.vx = dir.x * state.stats.speed;
+  p.vy = dir.y * state.stats.speed;
+  p.x += p.vx * dt;
+  p.y += p.vy * dt;
+  if (Math.abs(dir.x) > 0.05) p.facing = dir.x < 0 ? -1 : 1;
   if ((pressed.has("shift") || pressed.has(" ")) && p.dashT <= 0) {
-    p.x += dir.x * 145 || p.facing * 145;
-    p.y += dir.y * 145;
+    const dashX = moving ? dir.x : p.facing;
+    const dashY = moving ? dir.y : 0;
+    p.x += dashX * 145;
+    p.y += dashY * 145;
     p.invuln = 0.35;
     p.dashT = state.stats.dashCooldown;
     state.shake = 3;
@@ -325,15 +343,15 @@ function updateSpawns(dt) {
   if (state.spawnT <= 0) {
     const pack = 2 + Math.floor(state.time / 34);
     for (let i = 0; i < pack; i++) spawnEnemy("ghoul");
-    state.spawnT = 1.25 - pressure;
+    state.spawnT = 1.2 - pressure;
   }
   if (state.mageT <= 0) {
     spawnEnemy("mage");
-    state.mageT = 8.0 - pressure * 4.5;
+    state.mageT = 7.8 - pressure * 4.5;
   }
   if (state.eliteT <= 0) {
     spawnEnemy("brute");
-    state.eliteT = 28 - pressure * 16;
+    state.eliteT = 27 - pressure * 16;
   }
 }
 
@@ -352,7 +370,17 @@ function updateEnemies(dt) {
       e.shoot -= dt;
       if (e.shoot <= 0 && dist(e, p) < 650) {
         const aim = norm(p.x - e.x, p.y - e.y);
-        state.enemyBullets.push({ x: e.x, y: e.y, vx: aim.x * 250, vy: aim.y * 250, r: 9, life: 4.2, damage: 14 });
+        state.enemyBullets.push({
+          x: e.x,
+          y: e.y,
+          vx: aim.x * 250,
+          vy: aim.y * 250,
+          angle: Math.atan2(aim.y, aim.x),
+          r: 9,
+          life: 4.2,
+          damage: 14,
+          anim: 0
+        });
         e.shoot = rand(1.4, 2.4);
       }
     }
@@ -371,6 +399,7 @@ function updateBullets(dt) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.life -= dt;
+    b.anim += dt * 16;
     for (const e of [...state.enemies]) {
       if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.r) {
         damageEnemy(e, b.damage, 22);
@@ -386,6 +415,7 @@ function updateBullets(dt) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.life -= dt;
+    b.anim += dt * 12;
     if (Math.hypot(state.player.x - b.x, state.player.y - b.y) < state.player.radius + b.r && state.player.invuln <= 0) {
       state.player.hp -= b.damage;
       state.player.invuln = 0.55;
@@ -441,7 +471,7 @@ function draw() {
   updateCamera();
   ctx.clearRect(0, 0, W, H);
   drawBackground();
-  if (state.mode === "menu") {
+  if (state.mode === "menu" || state.mode === "loading") {
     drawMenu();
     return;
   }
@@ -473,11 +503,13 @@ function drawBackground() {
   }
 }
 
-function drawSprite(row, frame, x, y, size = SPRITE, flip = false) {
+function drawSprite(row, frame, x, y, size = SPRITE, flip = false, angle = 0, alpha = 1) {
   const sx = (frame % 12) * SPRITE;
   const sy = row * SPRITE;
   ctx.save();
+  ctx.globalAlpha = alpha;
   ctx.translate(Math.round(x), Math.round(y));
+  if (angle) ctx.rotate(angle);
   if (flip) ctx.scale(-1, 1);
   ctx.drawImage(sprites, sx, sy, SPRITE, SPRITE, -size / 2, -size / 2, size, size);
   ctx.restore();
@@ -486,65 +518,51 @@ function drawSprite(row, frame, x, y, size = SPRITE, flip = false) {
 function drawPlayer() {
   const p = state.player;
   const s = worldToScreen(p.x, p.y);
-  const moving = Math.abs(p.vx) + Math.abs(p.vy) > 1 || keys.has("a") || keys.has("d") || keys.has("w") || keys.has("s");
-  const row = moving ? 1 : 0;
-  const frame = Math.floor(p.anim) % 12;
-  if (p.invuln > 0 && Math.floor(performance.now() / 70) % 2 === 0) ctx.globalAlpha = 0.55;
-  drawSprite(row, frame, s.x, s.y, 96, p.facing < 0);
-  ctx.globalAlpha = 1;
+  const moving = Math.abs(p.vx) + Math.abs(p.vy) > 1;
+  const row = moving ? ROW.heroRun : ROW.heroIdle;
+  const alpha = p.invuln > 0 && Math.floor(performance.now() / 70) % 2 === 0 ? 0.55 : 1;
+  drawSprite(row, Math.floor(p.anim) % 12, s.x, s.y, 106, p.facing < 0, 0, alpha);
 }
 
 function drawEnemies() {
   for (const e of state.enemies) {
     const s = worldToScreen(e.x, e.y);
-    const row = e.kind === "mage" ? 3 : e.kind === "brute" ? 4 : 2;
-    const size = e.kind === "brute" ? 116 : e.kind === "mage" ? 96 : 88;
-    if (e.hit > 0) {
-      ctx.globalAlpha = 0.45;
-      ctx.fillStyle = "#fff8d8";
-      ctx.fillRect(s.x - size / 3, s.y - size / 3, size / 1.5, size / 1.5);
-      ctx.globalAlpha = 1;
-    }
+    const row = e.kind === "mage" ? ROW.mage : e.kind === "brute" ? ROW.brute : ROW.ghoul;
+    const size = e.kind === "brute" ? 124 : e.kind === "mage" ? 104 : 96;
+    if (e.hit > 0) drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, size + 8, e.x > state.player.x, 0, 0.45);
     drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, size, e.x > state.player.x);
     ctx.fillStyle = "#1b0b0b";
-    ctx.fillRect(s.x - 20, s.y - size * 0.42, 40, 5);
+    ctx.fillRect(s.x - 22, s.y - size * 0.42, 44, 5);
     ctx.fillStyle = e.kind === "brute" ? "#ff7b32" : "#f04452";
-    ctx.fillRect(s.x - 20, s.y - size * 0.42, 40 * Math.max(0, e.hp / e.maxHp), 5);
+    ctx.fillRect(s.x - 22, s.y - size * 0.42, 44 * Math.max(0, e.hp / e.maxHp), 5);
   }
 }
 
 function drawBullets() {
   for (const b of state.bullets) {
     const s = worldToScreen(b.x, b.y);
-    drawSprite(5, 6 + (Math.floor(state.time * 16) % 6), s.x, s.y, 56 * state.stats.area);
+    drawSprite(ROW.talismanBlade, Math.floor(b.anim) % 6, s.x, s.y, 62 * state.stats.area, false, b.angle);
   }
   for (const b of state.enemyBullets) {
     const s = worldToScreen(b.x, b.y);
-    ctx.fillStyle = "#ff4b26";
-    ctx.fillRect(s.x - 8, s.y - 8, 16, 16);
-    ctx.fillStyle = "#ffd047";
-    ctx.fillRect(s.x - 4, s.y - 4, 8, 8);
+    drawSprite(ROW.fire, Math.floor(b.anim) % 12, s.x, s.y, 66, false, b.angle);
   }
 }
 
 function drawPickups() {
   for (const p of state.pickups) {
     const s = worldToScreen(p.x, p.y + Math.sin(p.t * 8) * 4);
-    drawSprite(5, Math.floor(p.t * 10) % 6, s.x, s.y, 56);
+    drawSprite(ROW.soul, Math.floor(p.t * 10) % 12, s.x, s.y, 56);
   }
 }
 
 function drawOrbitBlades() {
   const p = state.player;
   const radius = 62 * state.stats.area;
-  ctx.fillStyle = "#dffdf1";
   for (let i = 0; i < state.stats.blades; i++) {
     const a = state.time * 3.2 + (i / state.stats.blades) * TWO_PI;
     const s = worldToScreen(p.x + Math.cos(a) * radius, p.y + Math.sin(a) * radius);
-    ctx.fillRect(s.x - 15, s.y - 4, 30, 8);
-    ctx.fillStyle = "#77f5dc";
-    ctx.fillRect(s.x + 4, s.y - 2, 14, 4);
-    ctx.fillStyle = "#dffdf1";
+    drawSprite(ROW.talismanBlade, 6 + (Math.floor(state.time * 14 + i) % 6), s.x, s.y, 62 * state.stats.area, false, a);
   }
 }
 
@@ -575,9 +593,9 @@ function drawHud() {
 function drawMenu() {
   panel(310, 145, 660, 420);
   center("符火夜行", W / 2, 220, 54, "#fff4d8");
-  center("2D 像素風割草遊戲：怪潮追殺、遠程火彈、魂火升級、撐越久越瘋。", W / 2, 278, 20, "#d9e3df");
-  center("WASD / 方向鍵移動  |  Shift / Space 閃避  |  自動攻擊最近敵人", W / 2, 322, 18, "#a8c8c0");
-  center("點擊或按 Enter 開始", W / 2, 428, 30, "#ffe8ad");
+  center("2D 像素割草：怪潮追擊、遠程火球、符咒自動攻擊。", W / 2, 278, 20, "#d9e3df");
+  center("WASD / 方向鍵移動  |  Shift / Space 閃避  |  吃魂火升級", W / 2, 322, 18, "#a8c8c0");
+  center(state.mode === "loading" ? "載入像素素材中..." : "點擊畫面或按 Enter 開始", W / 2, 428, 30, "#ffe8ad");
 }
 
 function drawLevelUp() {
@@ -591,9 +609,9 @@ function drawLevelUp() {
 
 function drawDead() {
   panel(365, 210, 550, 270);
-  center("夜市吞沒了你", W / 2, 285, 42, "#fff4d8");
+  center("魂火熄滅", W / 2, 285, 42, "#fff4d8");
   center(`存活 ${formatTime(state.time)} / 擊殺 ${state.kills} / 等級 ${state.level}`, W / 2, 340, 20, "#d9e3df");
-  center("按 Enter 或點擊重新開始", W / 2, 410, 26, "#ffe8ad");
+  center("按 Enter 重新開始", W / 2, 410, 26, "#ffe8ad");
 }
 
 function card(x, y, w, h, opt, n) {
@@ -711,7 +729,12 @@ window.render_game_to_text = () => JSON.stringify({
   enemyBullets: state.enemyBullets.length,
   pickups: state.pickups.length,
   kills: state.kills,
-  note: "Coordinates use world pixels, origin top-left, y grows downward."
+  sprites: {
+    complete: sprites.complete,
+    naturalWidth: sprites.naturalWidth,
+    naturalHeight: sprites.naturalHeight
+  },
+  note: "All gameplay actors are drawn from survivor-sprites.png."
 });
 
 window.advanceTime = (ms) => {
@@ -726,4 +749,10 @@ sprites.onload = () => {
   last = performance.now();
   cancelAnimationFrame(raf);
   raf = requestAnimationFrame(loop);
+};
+
+sprites.onerror = () => {
+  state.mode = "loading";
+  state.message = "素材載入失敗，請重新整理。";
+  draw();
 };

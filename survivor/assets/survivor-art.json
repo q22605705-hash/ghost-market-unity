@@ -1,15 +1,23 @@
 {
-  "source": "GPT pixel-art green-screen sheet, processed by local Luma Key",
+  "source": "GPT-generated pixel-art green-screen sheet, processed by local Luma Key",
   "raw": "assets/raw/gpt-pixel-survivor-greenscreen.png",
   "texture": "assets/survivor-sprites.png",
   "cell": 128,
+  "columns": 12,
   "rows": {
     "heroIdle": 0,
     "heroRun": 1,
     "ghoul": 2,
     "mage": 3,
     "brute": 4,
-    "soulAndFire": 5
+    "soul": 5,
+    "enemyFire": 6,
+    "talismanAndBlade": 7
   },
-  "columns": 12
+  "verification": {
+    "transparentPixels": 1155042,
+    "opaqueGreenPixels": 0,
+    "width": 1536,
+    "height": 1024
+  }
 }
