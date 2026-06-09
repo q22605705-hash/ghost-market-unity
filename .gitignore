@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+vite.log
+playtest-*.png
+UnityProject/Library/
+UnityProject/Temp/
+UnityProject/Obj/
+UnityProject/Build/
+UnityProject/Builds/
+UnityProject/Logs/
+UnityProject/UserSettings/

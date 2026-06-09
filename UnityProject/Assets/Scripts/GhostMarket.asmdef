@@ -1,0 +1,16 @@
+{
+  "name": "GhostMarket",
+  "rootNamespace": "GhostMarket",
+  "references": [
+    "UnityEngine.Physics2DModule"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
