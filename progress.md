@@ -17,6 +17,9 @@ Gameplay implemented
 - Enemy contact damage and enemy projectile damage.
 - XP soul drops, pickup magnet, level-up pause, and three upgrade cards.
 - Upgrade pool includes damage, attack speed, movement speed, magnet, max HP, orbit blade count, weapon area, pierce, and regeneration.
+- XP pacing was rebalanced so early upgrades no longer fire every few seconds: initial level requirement is 20 XP, then scales with a steeper formula.
+- XP pickups now only magnetize inside the player's pickup radius. The previous timed full-map auto-pull was removed.
+- Base pickup radius is 135px; the magnet upgrade adds 30px per pick instead of jumping by 45px.
 
 Art pipeline
 - The approved GPT green-screen sheet is survivor/assets/raw/gpt-approved-survivor-greenscreen.png.
@@ -32,3 +35,5 @@ Testing
 - Long simulation reached around 75 seconds, level 13, 172 kills, 26 active enemies, ranged enemies and enemy bullets present, with no page errors or failed asset requests.
 - After integrating the approved GPT art, Playwright confirmed survivor-sprites.png loaded at 1536x1024 and gameplay actors are drawn from the PNG sheet.
 - Anchor verification confirmed hero idle/run frames do not drift: center range 63.5-64 and foot bottom 112 for all frames.
+- XP rebalance test: stationary play died around 35s at Lv1 with 63 pickups left on the field, confirming distant XP no longer auto-pulls.
+- XP rebalance test with movement reached around 51s at Lv4 with no console errors or failed requests.

@@ -1,4 +1,4 @@
-const canvas = document.querySelector("#game");
+﻿const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
 
@@ -36,7 +36,7 @@ const state = {
   kills: 0,
   level: 1,
   xp: 0,
-  xpNeed: 8,
+  xpNeed: 20,
   shake: 0,
   freeze: 0,
   spawnT: 0,
@@ -60,7 +60,7 @@ function resetGame() {
   state.kills = 0;
   state.level = 1;
   state.xp = 0;
-  state.xpNeed = 8;
+  state.xpNeed = 20;
   state.shake = 0;
   state.freeze = 0;
   state.spawnT = 0;
@@ -81,7 +81,7 @@ function resetGame() {
     fireRate: 0.34,
     damage: 34,
     projectileSpeed: 700,
-    magnet: 190,
+    magnet: 135,
     area: 1,
     blades: 2,
     bladeDamage: 22,
@@ -143,9 +143,9 @@ function spawnEnemy(kind = "ghoul") {
   const pos = edgeSpawn();
   const minute = state.time / 60;
   const templates = {
-    ghoul: { hp: 32 + minute * 9, speed: 66 + minute * 5, damage: 5, radius: 19, xp: 7 },
-    mage: { hp: 52 + minute * 13, speed: 46 + minute * 3, damage: 6, radius: 18, xp: 14, shoot: rand(1.5, 2.4) },
-    brute: { hp: 140 + minute * 30, speed: 38 + minute * 3, damage: 13, radius: 29, xp: 30 }
+    ghoul: { hp: 32 + minute * 9, speed: 66 + minute * 5, damage: 5, radius: 19, xp: 4 },
+    mage: { hp: 52 + minute * 13, speed: 46 + minute * 3, damage: 6, radius: 18, xp: 10, shoot: rand(1.5, 2.4) },
+    brute: { hp: 140 + minute * 30, speed: 38 + minute * 3, damage: 13, radius: 29, xp: 26 }
   };
   const template = templates[kind];
   state.enemies.push({
@@ -234,7 +234,7 @@ function gainXp(amount) {
   while (state.xp >= state.xpNeed) {
     state.xp -= state.xpNeed;
     state.level++;
-    state.xpNeed = Math.floor(state.xpNeed * 1.22 + 6);
+    state.xpNeed = Math.floor(state.xpNeed * 1.28 + 12 + state.level * 2);
     openLevelUp();
   }
 }
@@ -243,7 +243,7 @@ const upgradePool = [
   { name: "符火加速", desc: "攻擊間隔 -12%", apply: () => state.stats.fireRate *= 0.88 },
   { name: "劍符增傷", desc: "傷害 +7", apply: () => state.stats.damage += 7 },
   { name: "疾行靴", desc: "移動速度 +12%", apply: () => state.stats.speed *= 1.12 },
-  { name: "聚魂鈴", desc: "吸取範圍 +45", apply: () => state.stats.magnet += 45 },
+  { name: "聚魂鈴", desc: "吸取範圍 +30", apply: () => state.stats.magnet += 30 },
   { name: "護命符", desc: "最大生命 +25 並治療", apply: () => { state.stats.maxHp += 25; state.player.hp = Math.min(state.stats.maxHp, state.player.hp + 45); } },
   { name: "旋刃", desc: "增加一把環繞刀", apply: () => state.stats.blades += 1 },
   { name: "大符紙", desc: "武器尺寸 +16%", apply: () => state.stats.area *= 1.16 },
@@ -431,11 +431,11 @@ function updatePickups(dt) {
   for (const s of [...state.pickups]) {
     s.t += dt;
     const d = dist(s, p);
-    if (d < state.stats.magnet || s.t > 6) {
+    if (d < state.stats.magnet) {
       const n = norm(p.x - s.x, p.y - s.y);
-      const pull = d < state.stats.magnet ? state.stats.magnet - d : 80;
-      s.x += n.x * (320 + pull * 4) * dt;
-      s.y += n.y * (320 + pull * 4) * dt;
+      const pull = state.stats.magnet - d;
+      s.x += n.x * (180 + pull * 3.2) * dt;
+      s.y += n.y * (180 + pull * 3.2) * dt;
     }
     if (d < p.radius + 10) {
       gainXp(s.xp);
@@ -729,6 +729,9 @@ window.render_game_to_text = () => JSON.stringify({
   enemyBullets: state.enemyBullets.length,
   pickups: state.pickups.length,
   kills: state.kills,
+  xp: Number(state.xp.toFixed(1)),
+  xpNeed: state.xpNeed,
+  magnet: Math.round(state.stats?.magnet ?? 0),
   sprites: {
     complete: sprites.complete,
     naturalWidth: sprites.naturalWidth,
