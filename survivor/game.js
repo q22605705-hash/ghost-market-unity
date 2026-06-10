@@ -503,7 +503,7 @@ function drawBackground() {
   }
 }
 
-function drawSprite(row, frame, x, y, size = SPRITE, flip = false, angle = 0, alpha = 1) {
+function drawSprite(row, frame, x, y, size = SPRITE, flip = false, angle = 0, alpha = 1, anchorX = 64, anchorY = 64) {
   const sx = (frame % 12) * SPRITE;
   const sy = row * SPRITE;
   ctx.save();
@@ -511,7 +511,7 @@ function drawSprite(row, frame, x, y, size = SPRITE, flip = false, angle = 0, al
   ctx.translate(Math.round(x), Math.round(y));
   if (angle) ctx.rotate(angle);
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(sprites, sx, sy, SPRITE, SPRITE, -size / 2, -size / 2, size, size);
+  ctx.drawImage(sprites, sx, sy, SPRITE, SPRITE, -(anchorX / SPRITE) * size, -(anchorY / SPRITE) * size, size, size);
   ctx.restore();
 }
 
@@ -521,7 +521,7 @@ function drawPlayer() {
   const moving = Math.abs(p.vx) + Math.abs(p.vy) > 1;
   const row = moving ? ROW.heroRun : ROW.heroIdle;
   const alpha = p.invuln > 0 && Math.floor(performance.now() / 70) % 2 === 0 ? 0.55 : 1;
-  drawSprite(row, Math.floor(p.anim) % 12, s.x, s.y, 106, p.facing < 0, 0, alpha);
+  drawSprite(row, Math.floor(p.anim) % 12, s.x, s.y, 116, p.facing < 0, 0, alpha, 64, 112);
 }
 
 function drawEnemies() {
@@ -529,12 +529,12 @@ function drawEnemies() {
     const s = worldToScreen(e.x, e.y);
     const row = e.kind === "mage" ? ROW.mage : e.kind === "brute" ? ROW.brute : ROW.ghoul;
     const size = e.kind === "brute" ? 124 : e.kind === "mage" ? 104 : 96;
-    if (e.hit > 0) drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, size + 8, e.x > state.player.x, 0, 0.45);
-    drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, size, e.x > state.player.x);
+    if (e.hit > 0) drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, size + 8, e.x > state.player.x, 0, 0.45, 64, 112);
+    drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, size, e.x > state.player.x, 0, 1, 64, 112);
     ctx.fillStyle = "#1b0b0b";
-    ctx.fillRect(s.x - 22, s.y - size * 0.42, 44, 5);
+    ctx.fillRect(s.x - 22, s.y - size * 0.9, 44, 5);
     ctx.fillStyle = e.kind === "brute" ? "#ff7b32" : "#f04452";
-    ctx.fillRect(s.x - 22, s.y - size * 0.42, 44 * Math.max(0, e.hp / e.maxHp), 5);
+    ctx.fillRect(s.x - 22, s.y - size * 0.9, 44 * Math.max(0, e.hp / e.maxHp), 5);
   }
 }
 

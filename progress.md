@@ -19,15 +19,16 @@ Gameplay implemented
 - Upgrade pool includes damage, attack speed, movement speed, magnet, max HP, orbit blade count, weapon area, pierce, and regeneration.
 
 Art pipeline
-- Pixel-art source sheet is generated with GPT as a green-screen sprite sheet.
-- Local Luma Key pass removes the green background into transparency.
-- The integrated GPT sheet is 1536x1024 with 8 rows and 12 columns: hero idle, hero run, ghoul, mage, brute, soul pickup, enemy fireball, talisman projectile / orbit blade.
-- Verification confirmed 1,155,042 transparent pixels and 0 opaque green pixels in survivor/assets/survivor-sprites.png.
-- A cleanup pass removes cross-row debris from the soul pickup row so cropped sprites do not leave brown fragments in gameplay.
+- The approved GPT green-screen sheet is survivor/assets/raw/gpt-approved-survivor-greenscreen.png.
+- The game now uses the approved black-cloaked swordsman / crawling beast / lantern mage / horned brute sheet instead of the later placeholder Taoist sheet.
+- A component-based normalization pass removes the green screen, groups each sprite by connected components, and outputs survivor/assets/survivor-sprites.png.
+- Character rows use a strict bottom-center feet anchor at x=64, y=112; effect rows use center anchor x=64, y=64.
+- Verification confirmed all 12 frames in hero idle, hero run, beast, mage, and brute rows share bottom y=112 and center x around 64.
+- Verification confirmed 1,261,102 transparent pixels and 0 opaque green pixels in survivor/assets/survivor-sprites.png.
 
 Testing
 - Local server smoke test returned HTTP 200.
 - Playwright local menu and gameplay checks passed with screenshots.
 - Long simulation reached around 75 seconds, level 13, 172 kills, 26 active enemies, ranged enemies and enemy bullets present, with no page errors or failed asset requests.
-- After integrating GPT art, Playwright confirmed survivor-sprites.png loaded at 1536x1024 and gameplay actors are drawn from the PNG sheet.
-- GPT art gameplay screenshot reached around 30 seconds, level 8, 63 kills, with mage, brute, enemy fireball, talisman projectile, orbit blades, and soul pickups visible.
+- After integrating the approved GPT art, Playwright confirmed survivor-sprites.png loaded at 1536x1024 and gameplay actors are drawn from the PNG sheet.
+- Anchor verification confirmed hero idle/run frames do not drift: center range 63.5-64 and foot bottom 112 for all frames.
