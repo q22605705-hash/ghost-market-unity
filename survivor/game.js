@@ -23,6 +23,8 @@ const ROW = {
 
 const sprites = new Image();
 sprites.src = "./assets/survivor-sprites.png";
+const skillEffects = new Image();
+skillEffects.src = "./assets/skill-effects.png";
 
 const keys = new Set();
 const pressed = new Set();
@@ -50,6 +52,7 @@ const state = {
   bullets: [],
   enemyBullets: [],
   pickups: [],
+  effects: [],
   damageText: [],
   options: [],
   stats: null
@@ -73,6 +76,7 @@ function resetGame() {
   state.bullets = [];
   state.enemyBullets = [];
   state.pickups = [];
+  state.effects = [];
   state.damageText = [];
   state.options = [];
   state.stats = {
@@ -91,7 +95,11 @@ function resetGame() {
     element: null,
     fire: { burn: 0, explosion: 0, meteor: 0 },
     water: { slow: 0, frostNova: 0, shard: 0 },
-    lightning: { chain: 0, crit: 0, storm: 0 }
+    lightning: { chain: 0, crit: 0, storm: 0 },
+    poison: { venom: 0, cloud: 0, weaken: 0 },
+    shadow: { curse: 0, execute: 0, void: 0 },
+    holy: { heal: 0, shield: 0, smite: 0 },
+    wind: { speed: 0, cyclone: 0, split: 0 }
   };
   state.player = {
     x: WORLD_W / 2,
@@ -225,12 +233,18 @@ function damageEnemy(e, amount, knock = 16) {
   if (e.hp <= 0) killEnemy(e);
 }
 
+function addEffect(row, frame, x, y, size = 120, life = 0.45, angle = 0, alpha = 0.95) {
+  state.effects.push({ row, frame, x, y, size, life, maxLife: life, angle, alpha });
+}
+
 function applyElementHit(e, b) {
   const element = b.element || state.stats.element;
   if (!element) return;
   if (element === "fire") {
+    addEffect(0, state.stats.fire.explosion > 0 ? 0 : 5, e.x, e.y - 10, 118, 0.38);
     e.burn = Math.max(e.burn || 0, 1.8 + state.stats.fire.burn * 0.65);
     if (state.stats.fire.explosion > 0 && Math.random() < 0.18 + state.stats.fire.explosion * 0.08) {
+      addEffect(0, 2, e.x, e.y - 8, 150 + state.stats.fire.explosion * 10, 0.45);
       for (const other of state.enemies) {
         if (other !== e && Math.hypot(other.x - e.x, other.y - e.y) < 76 + state.stats.fire.explosion * 18) {
           damageEnemy(other, state.stats.damage * (0.45 + state.stats.fire.explosion * 0.12), 10);
@@ -239,12 +253,14 @@ function applyElementHit(e, b) {
     }
   }
   if (element === "water") {
+    addEffect(1, state.stats.water.frostNova > 0 ? 4 : 3, e.x, e.y - 8, 120 + state.stats.water.frostNova * 10, 0.45);
     e.slow = Math.max(e.slow || 0, 1.4 + state.stats.water.slow * 0.35);
     if (state.stats.water.shard > 0 && Math.random() < 0.22) {
       b.pierce += 1;
     }
   }
   if (element === "lightning") {
+    addEffect(2, state.stats.lightning.storm > 0 ? 7 : 0, e.x, e.y - 12, 130, 0.32);
     if (state.stats.lightning.crit > 0 && Math.random() < 0.12 + state.stats.lightning.crit * 0.08) {
       damageEnemy(e, state.stats.damage * 0.7, 8);
     }
@@ -263,10 +279,46 @@ function applyElementHit(e, b) {
         }
       }
       if (!target) break;
+      addEffect(2, 3, (from.x + target.x) / 2, (from.y + target.y) / 2 - 10, 118, 0.25, Math.atan2(target.y - from.y, target.x - from.x));
       damageEnemy(target, state.stats.damage * 0.38, 6);
       hit.add(target);
       from = target;
       jumps--;
+    }
+  }
+  if (element === "poison") {
+    addEffect(3, state.stats.poison.cloud > 0 ? 2 : 0, e.x, e.y - 6, 120 + state.stats.poison.cloud * 12, 0.55);
+    e.poison = Math.max(e.poison || 0, 2.4 + state.stats.poison.venom * 0.7);
+    e.weaken = Math.max(e.weaken || 0, state.stats.poison.weaken > 0 ? 1.6 + state.stats.poison.weaken * 0.3 : 0);
+    if (state.stats.poison.cloud > 0 && Math.random() < 0.16 + state.stats.poison.cloud * 0.08) {
+      for (const other of state.enemies) {
+        if (other !== e && Math.hypot(other.x - e.x, other.y - e.y) < 92 + state.stats.poison.cloud * 16) {
+          other.poison = Math.max(other.poison || 0, 1.4 + state.stats.poison.venom * 0.45);
+        }
+      }
+    }
+  }
+  if (element === "shadow") {
+    addEffect(3, state.stats.shadow.void > 0 ? 6 : 3, e.x, e.y - 8, 124, 0.4);
+    e.curse = Math.max(e.curse || 0, 1.7 + state.stats.shadow.curse * 0.45);
+    if (state.stats.shadow.execute > 0 && e.hp / e.maxHp < 0.22 + state.stats.shadow.execute * 0.04) {
+      damageEnemy(e, state.stats.damage * (0.9 + state.stats.shadow.execute * 0.2), 12);
+      addEffect(3, 4, e.x, e.y - 10, 140, 0.35);
+    }
+  }
+  if (element === "holy") {
+    addEffect(4, state.stats.holy.smite > 0 ? 3 : 1, e.x, e.y - 12, 120, 0.36);
+    if (state.stats.holy.smite > 0) damageEnemy(e, state.stats.damage * (0.18 + state.stats.holy.smite * 0.08), 4);
+    if (state.stats.holy.heal > 0 && Math.random() < 0.1 + state.stats.holy.heal * 0.04) {
+      state.player.hp = Math.min(state.stats.maxHp, state.player.hp + 2 + state.stats.holy.heal * 2);
+      addEffect(4, 0, state.player.x, state.player.y - 32, 112, 0.45);
+    }
+  }
+  if (element === "wind") {
+    addEffect(4, state.stats.wind.cyclone > 0 ? 7 : 6, e.x, e.y - 8, 118 + state.stats.wind.cyclone * 10, 0.38);
+    if (state.stats.wind.split > 0 && Math.random() < 0.18 + state.stats.wind.split * 0.06) {
+      b.pierce += 1;
+      e.slow = Math.max(e.slow || 0, 0.5);
     }
   }
 }
@@ -307,7 +359,11 @@ const baseUpgradePool = [
 const elementUnlocks = [
   { name: "火系符脈", desc: "符咒附加燃燒，之後出現火系分支", apply: () => { state.stats.element = "fire"; state.stats.fire.burn += 1; } },
   { name: "水系符脈", desc: "符咒附加緩速，之後出現水系分支", apply: () => { state.stats.element = "water"; state.stats.water.slow += 1; } },
-  { name: "雷系符脈", desc: "符咒可連鎖跳電，之後出現雷系分支", apply: () => { state.stats.element = "lightning"; state.stats.lightning.chain += 1; } }
+  { name: "雷系符脈", desc: "符咒可連鎖跳電，之後出現雷系分支", apply: () => { state.stats.element = "lightning"; state.stats.lightning.chain += 1; } },
+  { name: "毒系符脈", desc: "符咒附加毒蝕，之後出現毒系分支", apply: () => { state.stats.element = "poison"; state.stats.poison.venom += 1; } },
+  { name: "影系符脈", desc: "符咒附加詛咒，之後出現暗影分支", apply: () => { state.stats.element = "shadow"; state.stats.shadow.curse += 1; } },
+  { name: "聖系符脈", desc: "符咒命中可回復，之後出現聖光分支", apply: () => { state.stats.element = "holy"; state.stats.holy.heal += 1; } },
+  { name: "風系符脈", desc: "符咒帶旋風，之後出現風系分支", apply: () => { state.stats.element = "wind"; state.stats.wind.speed += 1; state.stats.speed *= 1.06; } }
 ];
 
 const elementBranches = {
@@ -325,6 +381,26 @@ const elementBranches = {
     { name: "連鎖雷", desc: "雷系命中後多跳一名敵人", apply: () => state.stats.lightning.chain += 1 },
     { name: "雷暴會心", desc: "雷系有機率追加傷害", apply: () => state.stats.lightning.crit += 1 },
     { name: "風暴核心", desc: "提升雷系跳電與攻速", apply: () => { state.stats.lightning.storm += 1; state.stats.fireRate *= 0.94; } }
+  ],
+  poison: [
+    { name: "猛毒符", desc: "毒蝕時間與傷害提高", apply: () => state.stats.poison.venom += 1 },
+    { name: "毒霧", desc: "命中有機率擴散毒雲", apply: () => state.stats.poison.cloud += 1 },
+    { name: "腐蝕印", desc: "中毒敵人傷害降低", apply: () => state.stats.poison.weaken += 1 }
+  ],
+  shadow: [
+    { name: "暗影咒", desc: "詛咒時間提高", apply: () => state.stats.shadow.curse += 1 },
+    { name: "斬魂", desc: "低血敵人受到斬殺傷害", apply: () => state.stats.shadow.execute += 1 },
+    { name: "虛空裂隙", desc: "暗影命中特效和爆發提高", apply: () => { state.stats.shadow.void += 1; state.stats.damage += 3; } }
+  ],
+  holy: [
+    { name: "聖療", desc: "命中時有機率治療玩家", apply: () => state.stats.holy.heal += 1 },
+    { name: "金盾", desc: "提高最大生命與受擊容錯", apply: () => { state.stats.holy.shield += 1; state.stats.maxHp += 18; state.player.hp += 18; } },
+    { name: "聖裁", desc: "聖系命中追加光傷", apply: () => state.stats.holy.smite += 1 }
+  ],
+  wind: [
+    { name: "疾風步", desc: "移動速度與閃避節奏提升", apply: () => { state.stats.wind.speed += 1; state.stats.speed *= 1.08; state.stats.dashCooldown *= 0.95; } },
+    { name: "旋風刃", desc: "風系命中產生更大旋風", apply: () => state.stats.wind.cyclone += 1 },
+    { name: "裂風", desc: "風系符咒有機率增加穿透", apply: () => state.stats.wind.split += 1 }
   ]
 };
 
@@ -459,6 +535,13 @@ function updateEnemies(dt) {
       damageEnemy(e, (2.5 + state.stats.fire.burn * 1.4) * dt, 0);
       if (e.hp <= 0) continue;
     }
+    if (e.poison > 0) {
+      e.poison -= dt;
+      damageEnemy(e, (1.8 + state.stats.poison.venom * 1.7) * dt, 0);
+      if (e.hp <= 0) continue;
+    }
+    e.curse = Math.max(0, (e.curse || 0) - dt);
+    e.weaken = Math.max(0, (e.weaken || 0) - dt);
     e.slow = Math.max(0, (e.slow || 0) - dt);
     const d = norm(p.x - e.x, p.y - e.y);
     const desired = e.kind === "mage" && dist(e, p) < 360 ? -0.35 : 1;
@@ -486,7 +569,9 @@ function updateEnemies(dt) {
       }
     }
     if (dist(e, p) < e.radius + p.radius && p.invuln <= 0) {
-      p.hp -= e.damage;
+      const contactDamage = e.weaken > 0 ? e.damage * 0.72 : e.damage;
+      const shieldBlock = state.stats.holy.shield > 0 ? Math.min(e.damage * 0.35, state.stats.holy.shield * 2) : 0;
+      p.hp -= Math.max(1, contactDamage - shieldBlock);
       p.invuln = 0.6;
       state.freeze = 0.08;
       state.shake = 8;
@@ -547,6 +632,10 @@ function updatePickups(dt) {
 }
 
 function updateEffects(dt) {
+  for (const fx of [...state.effects]) {
+    fx.life -= dt;
+    if (fx.life <= 0) state.effects.splice(state.effects.indexOf(fx), 1);
+  }
   for (const t of [...state.damageText]) {
     t.t -= dt;
     t.y -= 24 * dt;
@@ -580,6 +669,7 @@ function draw() {
   drawPickups();
   drawBullets();
   drawEnemies();
+  drawEffects();
   drawPlayer();
   drawOrbitBlades();
   drawDamageText();
@@ -636,6 +726,26 @@ function drawPlayer() {
   drawSprite(row, Math.floor(p.anim) % 12, s.x, s.y, 116 * VIEW_SCALE, p.facing < 0, 0, alpha, 64, 112);
 }
 
+function drawSkillEffect(row, frame, x, y, size = 128, angle = 0, alpha = 1) {
+  if (!skillEffects.complete) return;
+  const sx = (frame % 8) * 128;
+  const sy = row * 128;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(Math.round(x), Math.round(y));
+  if (angle) ctx.rotate(angle);
+  ctx.drawImage(skillEffects, sx, sy, 128, 128, -size / 2, -size / 2, size, size);
+  ctx.restore();
+}
+
+function drawEffects() {
+  for (const fx of state.effects) {
+    const s = worldToScreen(fx.x, fx.y);
+    const t = Math.max(0, fx.life / fx.maxLife);
+    drawSkillEffect(fx.row, fx.frame, s.x, s.y, fx.size * VIEW_SCALE * (1 + (1 - t) * 0.12), fx.angle, fx.alpha * t);
+  }
+}
+
 function drawEnemies() {
   for (const e of state.enemies) {
     const s = worldToScreen(e.x, e.y);
@@ -666,6 +776,10 @@ function elementColor(element) {
   if (element === "fire") return "#ff7a1a";
   if (element === "water") return "#50d8ff";
   if (element === "lightning") return "#f6e95d";
+  if (element === "poison") return "#87ef38";
+  if (element === "shadow") return "#b25cff";
+  if (element === "holy") return "#ffe16b";
+  if (element === "wind") return "#9effbe";
   return "#ffffff";
 }
 
@@ -673,6 +787,10 @@ function elementName(element) {
   if (element === "fire") return "火系";
   if (element === "water") return "水系";
   if (element === "lightning") return "雷系";
+  if (element === "poison") return "毒系";
+  if (element === "shadow") return "影系";
+  if (element === "holy") return "聖系";
+  if (element === "wind") return "風系";
   return "未選";
 }
 
@@ -692,6 +810,12 @@ function drawElementTrail(b, s) {
     ctx.moveTo(s.x - 10 * VIEW_SCALE, s.y - 8 * VIEW_SCALE);
     ctx.lineTo(s.x + 4 * VIEW_SCALE, s.y + 2 * VIEW_SCALE);
     ctx.lineTo(s.x - 2 * VIEW_SCALE, s.y + 12 * VIEW_SCALE);
+    ctx.stroke();
+  }
+  if (b.element === "poison" || b.element === "shadow" || b.element === "holy" || b.element === "wind") {
+    ctx.globalAlpha = 0.45;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 10 * VIEW_SCALE, 0, TWO_PI);
     ctx.stroke();
   }
   ctx.restore();
@@ -770,8 +894,21 @@ function card(x, y, w, h, opt, n) {
   ctx.lineWidth = 3;
   ctx.strokeRect(x, y, w, h);
   center(`${n}`, x + 28, y + 34, 24, "#ffe8ad");
-  text(opt.name, x + 24, y + 76, 24, "#fff4d8");
-  wrap(opt.desc, x + 24, y + 116, w - 48, 20, "#b9d0ca");
+  const icon = upgradeIcon(opt.name);
+  if (icon) drawSkillEffect(icon.row, icon.frame, x + w - 42, y + 42, 58, 0, 0.95);
+  text(opt.name, x + 24, y + 82, 23, "#fff4d8");
+  wrap(opt.desc, x + 24, y + 122, w - 48, 20, "#b9d0ca");
+}
+
+function upgradeIcon(name) {
+  if (name.includes("火") || name.includes("灼") || name.includes("爆") || name.includes("隕")) return { row: 5, frame: 0 };
+  if (name.includes("水") || name.includes("寒") || name.includes("霜") || name.includes("冰")) return { row: 5, frame: 1 };
+  if (name.includes("雷") || name.includes("風暴") || name.includes("連鎖")) return { row: 5, frame: 2 };
+  if (name.includes("毒") || name.includes("腐")) return { row: 5, frame: 3 };
+  if (name.includes("影") || name.includes("斬") || name.includes("虛空")) return { row: 5, frame: 4 };
+  if (name.includes("聖") || name.includes("療") || name.includes("盾")) return { row: 5, frame: 5 };
+  if (name.includes("風") || name.includes("疾") || name.includes("旋")) return { row: 5, frame: 7 };
+  return null;
 }
 
 function panel(x, y, w, h) {
@@ -877,6 +1014,7 @@ window.render_game_to_text = () => JSON.stringify({
   bullets: state.bullets.length,
   enemyBullets: state.enemyBullets.length,
   pickups: state.pickups.length,
+  effects: state.effects.length,
   kills: state.kills,
   xp: Number(state.xp.toFixed(1)),
   xpNeed: state.xpNeed,
@@ -888,6 +1026,11 @@ window.render_game_to_text = () => JSON.stringify({
     complete: sprites.complete,
     naturalWidth: sprites.naturalWidth,
     naturalHeight: sprites.naturalHeight
+  },
+  skillEffects: {
+    complete: skillEffects.complete,
+    naturalWidth: skillEffects.naturalWidth,
+    naturalHeight: skillEffects.naturalHeight
   },
   note: "All gameplay actors are drawn from survivor-sprites.png."
 });

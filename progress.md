@@ -26,6 +26,13 @@ Gameplay implemented
 - Fire branch: burn duration, explosion chance, and fire burst damage.
 - Water branch: slow duration, area/control growth, and piercing shard chance.
 - Lightning branch: chain jumps, crit bonus, and storm attack-speed scaling.
+- A second GPT green-screen sheet was generated for skill visuals and normalized into survivor/assets/skill-effects.png.
+- Skill effects now include Fire, Water, Lightning, Poison, Shadow, Holy, Wind, and upgrade-card icons.
+- Added four additional branches:
+- Poison: venom damage, poison cloud spread, and enemy damage weakening.
+- Shadow: curse duration, low-health execute damage, and void burst scaling.
+- Holy: hit-based healing, shield mitigation, and holy smite bonus damage.
+- Wind: movement/dash tempo, cyclone visuals, and projectile split/pierce chance.
 
 Art pipeline
 - The approved GPT green-screen sheet is survivor/assets/raw/gpt-approved-survivor-greenscreen.png.
@@ -45,3 +52,4 @@ Testing
 - XP rebalance test with movement reached around 51s at Lv4 with no console errors or failed requests.
 - Zoom/element test reached around 58s at Lv5 with 57 kills and 66 enemies alive, confirming enemies survive longer and pressure is readable at the wider zoom.
 - Level-up logs confirmed Lv2 offered elemental affinities and later level-ups offered the selected element's branch upgrades.
+- Skill visual test confirmed skill-effects.png loads at 1024x768 with 0 opaque green pixels, Lv2 can offer new branches such as Wind, and later level-ups guarantee matching branch upgrades.
