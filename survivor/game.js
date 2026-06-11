@@ -8,6 +8,7 @@ const WORLD_W = 2600;
 const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
+const VIEW_SCALE = 0.78;
 
 const ROW = {
   heroIdle: 0,
@@ -36,7 +37,7 @@ const state = {
   kills: 0,
   level: 1,
   xp: 0,
-  xpNeed: 20,
+  xpNeed: 18,
   shake: 0,
   freeze: 0,
   spawnT: 0,
@@ -60,7 +61,7 @@ function resetGame() {
   state.kills = 0;
   state.level = 1;
   state.xp = 0;
-  state.xpNeed = 20;
+  state.xpNeed = 18;
   state.shake = 0;
   state.freeze = 0;
   state.spawnT = 0;
@@ -78,15 +79,19 @@ function resetGame() {
     speed: 292,
     maxHp: 180,
     regen: 1.4,
-    fireRate: 0.34,
-    damage: 34,
-    projectileSpeed: 700,
+    fireRate: 0.38,
+    damage: 28,
+    projectileSpeed: 680,
     magnet: 135,
     area: 1,
     blades: 2,
-    bladeDamage: 22,
+    bladeDamage: 17,
     pierce: 0,
-    dashCooldown: 1.25
+    dashCooldown: 1.25,
+    element: null,
+    fire: { burn: 0, explosion: 0, meteor: 0 },
+    water: { slow: 0, frostNova: 0, shard: 0 },
+    lightning: { chain: 0, crit: 0, storm: 0 }
   };
   state.player = {
     x: WORLD_W / 2,
@@ -143,9 +148,9 @@ function spawnEnemy(kind = "ghoul") {
   const pos = edgeSpawn();
   const minute = state.time / 60;
   const templates = {
-    ghoul: { hp: 32 + minute * 9, speed: 66 + minute * 5, damage: 5, radius: 19, xp: 4 },
-    mage: { hp: 52 + minute * 13, speed: 46 + minute * 3, damage: 6, radius: 18, xp: 10, shoot: rand(1.5, 2.4) },
-    brute: { hp: 140 + minute * 30, speed: 38 + minute * 3, damage: 13, radius: 29, xp: 26 }
+    ghoul: { hp: 48 + minute * 14, speed: 66 + minute * 5, damage: 5, radius: 19, xp: 5 },
+    mage: { hp: 78 + minute * 20, speed: 46 + minute * 3, damage: 6, radius: 18, xp: 12, shoot: rand(1.5, 2.4) },
+    brute: { hp: 210 + minute * 48, speed: 38 + minute * 3, damage: 13, radius: 29, xp: 30 }
   };
   const template = templates[kind];
   state.enemies.push({
@@ -186,6 +191,7 @@ function fireAtNearest() {
     life: 1.3,
     damage: state.stats.damage,
     pierce: state.stats.pierce,
+    element: state.stats.element,
     anim: 0
   });
 }
@@ -203,6 +209,7 @@ function radialBurst() {
       life: 0.75,
       damage: state.stats.damage * 0.85,
       pierce: 1,
+      element: state.stats.element,
       anim: 0
     });
   }
@@ -216,6 +223,52 @@ function damageEnemy(e, amount, knock = 16) {
   e.y += d.y * knock;
   state.damageText.push({ x: e.x, y: e.y - 18, t: 0.45, text: Math.round(amount).toString() });
   if (e.hp <= 0) killEnemy(e);
+}
+
+function applyElementHit(e, b) {
+  const element = b.element || state.stats.element;
+  if (!element) return;
+  if (element === "fire") {
+    e.burn = Math.max(e.burn || 0, 1.8 + state.stats.fire.burn * 0.65);
+    if (state.stats.fire.explosion > 0 && Math.random() < 0.18 + state.stats.fire.explosion * 0.08) {
+      for (const other of state.enemies) {
+        if (other !== e && Math.hypot(other.x - e.x, other.y - e.y) < 76 + state.stats.fire.explosion * 18) {
+          damageEnemy(other, state.stats.damage * (0.45 + state.stats.fire.explosion * 0.12), 10);
+        }
+      }
+    }
+  }
+  if (element === "water") {
+    e.slow = Math.max(e.slow || 0, 1.4 + state.stats.water.slow * 0.35);
+    if (state.stats.water.shard > 0 && Math.random() < 0.22) {
+      b.pierce += 1;
+    }
+  }
+  if (element === "lightning") {
+    if (state.stats.lightning.crit > 0 && Math.random() < 0.12 + state.stats.lightning.crit * 0.08) {
+      damageEnemy(e, state.stats.damage * 0.7, 8);
+    }
+    let jumps = state.stats.lightning.chain;
+    let from = e;
+    const hit = new Set([e]);
+    while (jumps > 0) {
+      let target = null;
+      let best = 150;
+      for (const other of state.enemies) {
+        if (hit.has(other)) continue;
+        const d = Math.hypot(other.x - from.x, other.y - from.y);
+        if (d < best) {
+          best = d;
+          target = other;
+        }
+      }
+      if (!target) break;
+      damageEnemy(target, state.stats.damage * 0.38, 6);
+      hit.add(target);
+      from = target;
+      jumps--;
+    }
+  }
 }
 
 function killEnemy(e) {
@@ -234,12 +287,12 @@ function gainXp(amount) {
   while (state.xp >= state.xpNeed) {
     state.xp -= state.xpNeed;
     state.level++;
-    state.xpNeed = Math.floor(state.xpNeed * 1.28 + 12 + state.level * 2);
+    state.xpNeed = Math.floor(state.xpNeed * 1.22 + 10 + state.level);
     openLevelUp();
   }
 }
 
-const upgradePool = [
+const baseUpgradePool = [
   { name: "符火加速", desc: "攻擊間隔 -12%", apply: () => state.stats.fireRate *= 0.88 },
   { name: "劍符增傷", desc: "傷害 +7", apply: () => state.stats.damage += 7 },
   { name: "疾行靴", desc: "移動速度 +12%", apply: () => state.stats.speed *= 1.12 },
@@ -251,11 +304,52 @@ const upgradePool = [
   { name: "回春印", desc: "每秒回血 +0.8", apply: () => state.stats.regen += 0.8 }
 ];
 
+const elementUnlocks = [
+  { name: "火系符脈", desc: "符咒附加燃燒，之後出現火系分支", apply: () => { state.stats.element = "fire"; state.stats.fire.burn += 1; } },
+  { name: "水系符脈", desc: "符咒附加緩速，之後出現水系分支", apply: () => { state.stats.element = "water"; state.stats.water.slow += 1; } },
+  { name: "雷系符脈", desc: "符咒可連鎖跳電，之後出現雷系分支", apply: () => { state.stats.element = "lightning"; state.stats.lightning.chain += 1; } }
+];
+
+const elementBranches = {
+  fire: [
+    { name: "灼燒延長", desc: "燃燒時間與傷害提高", apply: () => state.stats.fire.burn += 1 },
+    { name: "爆炎符", desc: "命中有機率造成小範圍爆炸", apply: () => state.stats.fire.explosion += 1 },
+    { name: "隕火印", desc: "提升火系爆發與燃燒擴散", apply: () => { state.stats.fire.meteor += 1; state.stats.damage += 4; } }
+  ],
+  water: [
+    { name: "寒流符", desc: "緩速時間增加", apply: () => state.stats.water.slow += 1 },
+    { name: "霜環", desc: "提高控場，旋刃範圍增加", apply: () => { state.stats.water.frostNova += 1; state.stats.area *= 1.08; } },
+    { name: "冰晶裂片", desc: "水系符咒有機率增加穿透", apply: () => state.stats.water.shard += 1 }
+  ],
+  lightning: [
+    { name: "連鎖雷", desc: "雷系命中後多跳一名敵人", apply: () => state.stats.lightning.chain += 1 },
+    { name: "雷暴會心", desc: "雷系有機率追加傷害", apply: () => state.stats.lightning.crit += 1 },
+    { name: "風暴核心", desc: "提升雷系跳電與攻速", apply: () => { state.stats.lightning.storm += 1; state.stats.fireRate *= 0.94; } }
+  ]
+};
+
+function currentUpgradePool() {
+  const pool = [...baseUpgradePool];
+  if (!state.stats.element && state.level >= 2) pool.push(...elementUnlocks);
+  if (state.stats.element) pool.push(...elementBranches[state.stats.element]);
+  return pool;
+}
+
 function openLevelUp() {
   state.mode = "level";
   state.options = [];
-  const bag = [...upgradePool].sort(() => Math.random() - 0.5);
-  state.options.push(...bag.slice(0, 3));
+  const baseBag = [...baseUpgradePool].sort(() => Math.random() - 0.5);
+  if (!state.stats.element && state.level >= 2) {
+    const elementBag = [...elementUnlocks].sort(() => Math.random() - 0.5);
+    state.options.push(elementBag[0], elementBag[1], baseBag[0]);
+    return;
+  }
+  if (state.stats.element) {
+    const branchBag = [...elementBranches[state.stats.element]].sort(() => Math.random() - 0.5);
+    state.options.push(branchBag[0], baseBag[0], branchBag[1] ?? baseBag[1]);
+    return;
+  }
+  state.options.push(...baseBag.slice(0, 3));
 }
 
 function chooseUpgrade(i) {
@@ -343,7 +437,7 @@ function updateSpawns(dt) {
   if (state.spawnT <= 0) {
     const pack = 2 + Math.floor(state.time / 34);
     for (let i = 0; i < pack; i++) spawnEnemy("ghoul");
-    state.spawnT = 1.2 - pressure;
+    state.spawnT = 1.45 - pressure;
   }
   if (state.mageT <= 0) {
     spawnEnemy("mage");
@@ -360,10 +454,17 @@ function updateEnemies(dt) {
   for (const e of [...state.enemies]) {
     e.anim += dt * 9;
     e.hit = Math.max(0, e.hit - dt);
+    if (e.burn > 0) {
+      e.burn -= dt;
+      damageEnemy(e, (2.5 + state.stats.fire.burn * 1.4) * dt, 0);
+      if (e.hp <= 0) continue;
+    }
+    e.slow = Math.max(0, (e.slow || 0) - dt);
     const d = norm(p.x - e.x, p.y - e.y);
     const desired = e.kind === "mage" && dist(e, p) < 360 ? -0.35 : 1;
-    e.x += d.x * e.speed * desired * dt;
-    e.y += d.y * e.speed * desired * dt;
+    const slowFactor = e.slow > 0 ? 0.58 : 1;
+    e.x += d.x * e.speed * desired * slowFactor * dt;
+    e.y += d.y * e.speed * desired * slowFactor * dt;
     e.x = clamp(e.x, 20, WORLD_W - 20);
     e.y = clamp(e.y, 20, WORLD_H - 20);
     if (e.kind === "mage") {
@@ -403,6 +504,7 @@ function updateBullets(dt) {
     for (const e of [...state.enemies]) {
       if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.r) {
         damageEnemy(e, b.damage, 22);
+        applyElementHit(e, b);
         b.pierce -= 1;
         state.freeze = 0.025;
         if (b.pierce < 0) b.life = -1;
@@ -454,13 +556,13 @@ function updateEffects(dt) {
 }
 
 function worldToScreen(x, y) {
-  return { x: x - state.camera.x, y: y - state.camera.y };
+  return { x: (x - state.camera.x) * VIEW_SCALE, y: (y - state.camera.y) * VIEW_SCALE };
 }
 
 function updateCamera() {
   const p = state.player || { x: WORLD_W / 2, y: WORLD_H / 2 };
-  state.camera.x = clamp(p.x - W / 2, 0, WORLD_W - W);
-  state.camera.y = clamp(p.y - H / 2, 0, WORLD_H - H);
+  state.camera.x = clamp(p.x - W / (2 * VIEW_SCALE), 0, WORLD_W - W / VIEW_SCALE);
+  state.camera.y = clamp(p.y - H / (2 * VIEW_SCALE), 0, WORLD_H - H / VIEW_SCALE);
   if (state.shake > 0) {
     state.camera.x += rand(-state.shake, state.shake);
     state.camera.y += rand(-state.shake, state.shake);
@@ -489,16 +591,17 @@ function draw() {
 function drawBackground() {
   ctx.fillStyle = "#071016";
   ctx.fillRect(0, 0, W, H);
-  const cx = -state.camera.x % 96;
-  const cy = -state.camera.y % 96;
-  for (let y = cy - 96; y < H + 96; y += 96) {
-    for (let x = cx - 96; x < W + 96; x += 96) {
+  const grid = 96 * VIEW_SCALE;
+  const cx = -(state.camera.x * VIEW_SCALE) % grid;
+  const cy = -(state.camera.y * VIEW_SCALE) % grid;
+  for (let y = cy - grid; y < H + grid; y += grid) {
+    for (let x = cx - grid; x < W + grid; x += grid) {
       ctx.fillStyle = ((x + y) / 96) % 2 === 0 ? "#0d1b20" : "#0a151a";
-      ctx.fillRect(x, y, 96, 96);
+      ctx.fillRect(x, y, grid, grid);
       ctx.fillStyle = "#163039";
-      ctx.fillRect(x + 8, y + 88, 52, 4);
+      ctx.fillRect(x + 8 * VIEW_SCALE, y + 88 * VIEW_SCALE, 52 * VIEW_SCALE, 4 * VIEW_SCALE);
       ctx.fillStyle = "#2a604f";
-      if ((x + y) % 192 === 0) ctx.fillRect(x + 72, y + 22, 8, 22);
+      if ((Math.round((x + y) / grid)) % 2 === 0) ctx.fillRect(x + 72 * VIEW_SCALE, y + 22 * VIEW_SCALE, 8 * VIEW_SCALE, 22 * VIEW_SCALE);
     }
   }
 }
@@ -521,7 +624,16 @@ function drawPlayer() {
   const moving = Math.abs(p.vx) + Math.abs(p.vy) > 1;
   const row = moving ? ROW.heroRun : ROW.heroIdle;
   const alpha = p.invuln > 0 && Math.floor(performance.now() / 70) % 2 === 0 ? 0.55 : 1;
-  drawSprite(row, Math.floor(p.anim) % 12, s.x, s.y, 116, p.facing < 0, 0, alpha, 64, 112);
+  if (state.stats.element) {
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = elementColor(state.stats.element);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y - 34 * VIEW_SCALE, 42 * VIEW_SCALE, 0, TWO_PI);
+    ctx.fill();
+    ctx.restore();
+  }
+  drawSprite(row, Math.floor(p.anim) % 12, s.x, s.y, 116 * VIEW_SCALE, p.facing < 0, 0, alpha, 64, 112);
 }
 
 function drawEnemies() {
@@ -529,30 +641,66 @@ function drawEnemies() {
     const s = worldToScreen(e.x, e.y);
     const row = e.kind === "mage" ? ROW.mage : e.kind === "brute" ? ROW.brute : ROW.ghoul;
     const size = e.kind === "brute" ? 124 : e.kind === "mage" ? 104 : 96;
-    if (e.hit > 0) drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, size + 8, e.x > state.player.x, 0, 0.45, 64, 112);
-    drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, size, e.x > state.player.x, 0, 1, 64, 112);
+    if (e.hit > 0) drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, (size + 8) * VIEW_SCALE, e.x > state.player.x, 0, 0.45, 64, 112);
+    drawSprite(row, Math.floor(e.anim) % 12, s.x, s.y, size * VIEW_SCALE, e.x > state.player.x, 0, 1, 64, 112);
     ctx.fillStyle = "#1b0b0b";
-    ctx.fillRect(s.x - 22, s.y - size * 0.9, 44, 5);
+    ctx.fillRect(s.x - 22 * VIEW_SCALE, s.y - size * 0.9 * VIEW_SCALE, 44 * VIEW_SCALE, 5 * VIEW_SCALE);
     ctx.fillStyle = e.kind === "brute" ? "#ff7b32" : "#f04452";
-    ctx.fillRect(s.x - 22, s.y - size * 0.9, 44 * Math.max(0, e.hp / e.maxHp), 5);
+    ctx.fillRect(s.x - 22 * VIEW_SCALE, s.y - size * 0.9 * VIEW_SCALE, 44 * Math.max(0, e.hp / e.maxHp) * VIEW_SCALE, 5 * VIEW_SCALE);
   }
 }
 
 function drawBullets() {
   for (const b of state.bullets) {
     const s = worldToScreen(b.x, b.y);
-    drawSprite(ROW.talismanBlade, Math.floor(b.anim) % 6, s.x, s.y, 62 * state.stats.area, false, b.angle);
+    drawElementTrail(b, s);
+    drawSprite(ROW.talismanBlade, Math.floor(b.anim) % 6, s.x, s.y, 62 * state.stats.area * VIEW_SCALE, false, b.angle);
   }
   for (const b of state.enemyBullets) {
     const s = worldToScreen(b.x, b.y);
-    drawSprite(ROW.fire, Math.floor(b.anim) % 12, s.x, s.y, 66, false, b.angle);
+    drawSprite(ROW.fire, Math.floor(b.anim) % 12, s.x, s.y, 66 * VIEW_SCALE, false, b.angle);
   }
+}
+
+function elementColor(element) {
+  if (element === "fire") return "#ff7a1a";
+  if (element === "water") return "#50d8ff";
+  if (element === "lightning") return "#f6e95d";
+  return "#ffffff";
+}
+
+function elementName(element) {
+  if (element === "fire") return "火系";
+  if (element === "water") return "水系";
+  if (element === "lightning") return "雷系";
+  return "未選";
+}
+
+function drawElementTrail(b, s) {
+  if (!b.element) return;
+  ctx.save();
+  ctx.globalAlpha = 0.72;
+  ctx.strokeStyle = elementColor(b.element);
+  ctx.lineWidth = 4 * VIEW_SCALE;
+  ctx.beginPath();
+  ctx.moveTo(s.x - Math.cos(b.angle) * 26 * VIEW_SCALE, s.y - Math.sin(b.angle) * 26 * VIEW_SCALE);
+  ctx.lineTo(s.x - Math.cos(b.angle) * 7 * VIEW_SCALE, s.y - Math.sin(b.angle) * 7 * VIEW_SCALE);
+  ctx.stroke();
+  if (b.element === "lightning") {
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(s.x - 10 * VIEW_SCALE, s.y - 8 * VIEW_SCALE);
+    ctx.lineTo(s.x + 4 * VIEW_SCALE, s.y + 2 * VIEW_SCALE);
+    ctx.lineTo(s.x - 2 * VIEW_SCALE, s.y + 12 * VIEW_SCALE);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawPickups() {
   for (const p of state.pickups) {
     const s = worldToScreen(p.x, p.y + Math.sin(p.t * 8) * 4);
-    drawSprite(ROW.soul, Math.floor(p.t * 10) % 12, s.x, s.y, 56);
+    drawSprite(ROW.soul, Math.floor(p.t * 10) % 12, s.x, s.y, 56 * VIEW_SCALE);
   }
 }
 
@@ -562,7 +710,7 @@ function drawOrbitBlades() {
   for (let i = 0; i < state.stats.blades; i++) {
     const a = state.time * 3.2 + (i / state.stats.blades) * TWO_PI;
     const s = worldToScreen(p.x + Math.cos(a) * radius, p.y + Math.sin(a) * radius);
-    drawSprite(ROW.talismanBlade, 6 + (Math.floor(state.time * 14 + i) % 6), s.x, s.y, 62 * state.stats.area, false, a);
+    drawSprite(ROW.talismanBlade, 6 + (Math.floor(state.time * 14 + i) % 6), s.x, s.y, 62 * state.stats.area * VIEW_SCALE, false, a);
   }
 }
 
@@ -587,6 +735,7 @@ function drawHud() {
   text(`Lv ${state.level}`, 248, 64, 14);
   text(`擊殺 ${state.kills}`, 248, 36, 14);
   text(formatTime(state.time), 370, 36, 18, "#ffe8ad");
+  text(`元素 ${elementName(state.stats.element)}`, 248, 96, 14, elementColor(state.stats.element));
   text(state.message, 26, H - 28, 16, "#d8e3df");
 }
 
@@ -732,6 +881,9 @@ window.render_game_to_text = () => JSON.stringify({
   xp: Number(state.xp.toFixed(1)),
   xpNeed: state.xpNeed,
   magnet: Math.round(state.stats?.magnet ?? 0),
+  element: state.stats?.element ?? null,
+  viewScale: VIEW_SCALE,
+  options: state.options.map((opt) => opt.name),
   sprites: {
     complete: sprites.complete,
     naturalWidth: sprites.naturalWidth,

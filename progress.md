@@ -20,6 +20,12 @@ Gameplay implemented
 - XP pacing was rebalanced so early upgrades no longer fire every few seconds: initial level requirement is 20 XP, then scales with a steeper formula.
 - XP pickups now only magnetize inside the player's pickup radius. The previous timed full-map auto-pull was removed.
 - Base pickup radius is 135px; the magnet upgrade adds 30px per pick instead of jumping by 45px.
+- Camera view was zoomed out to 0.78x so the player can read enemy pressure and pickup fields earlier.
+- Enemy durability was increased while player base damage was reduced slightly: normal enemies no longer die in one hit, but are not full bullet sponges.
+- Upgrade choices now include elemental branches. At level 2+, the player is offered Fire, Water, or Lightning affinity; after choosing one, future level-ups guarantee at least one matching branch upgrade.
+- Fire branch: burn duration, explosion chance, and fire burst damage.
+- Water branch: slow duration, area/control growth, and piercing shard chance.
+- Lightning branch: chain jumps, crit bonus, and storm attack-speed scaling.
 
 Art pipeline
 - The approved GPT green-screen sheet is survivor/assets/raw/gpt-approved-survivor-greenscreen.png.
@@ -37,3 +43,5 @@ Testing
 - Anchor verification confirmed hero idle/run frames do not drift: center range 63.5-64 and foot bottom 112 for all frames.
 - XP rebalance test: stationary play died around 35s at Lv1 with 63 pickups left on the field, confirming distant XP no longer auto-pulls.
 - XP rebalance test with movement reached around 51s at Lv4 with no console errors or failed requests.
+- Zoom/element test reached around 58s at Lv5 with 57 kills and 66 enemies alive, confirming enemies survive longer and pressure is readable at the wider zoom.
+- Level-up logs confirmed Lv2 offered elemental affinities and later level-ups offered the selected element's branch upgrades.
