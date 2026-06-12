@@ -1,5 +1,5 @@
 {
-  "source": "GPT-generated skill effects green-screen sheet, luma keyed and normalized",
+  "source": "GPT-generated skill effects with green-screen effects plus white-matte GPT UI icons, quality gated",
   "raw": "assets/raw/gpt-skill-effects-greenscreen.png",
   "texture": "assets/skill-effects.png",
   "cell": 128,
@@ -16,7 +16,14 @@
     "transparentPixels": 587316,
     "opaqueGreenPixels": 0,
     "width": 1024,
-    "height": 768
+    "height": 768,
+    "qualityGate": "pass",
+    "minOpaquePixels": 1127,
+    "maxMatteLikePixels": 3289,
+    "repairedCells": [
+      "row 3 col 0-2 poison/shadow",
+      "row 5 col 0-7 upgrade icons"
+    ]
   },
   "placements": [
     {
@@ -643,5 +650,6 @@
       },
       "scale": 0.772
     }
-  ]
+  ],
+  "rawIcons": "assets/raw/gpt-skill-icons-whitematte.png"
 }

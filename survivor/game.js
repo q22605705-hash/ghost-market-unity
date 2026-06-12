@@ -895,7 +895,19 @@ function card(x, y, w, h, opt, n) {
   ctx.strokeRect(x, y, w, h);
   center(`${n}`, x + 28, y + 34, 24, "#ffe8ad");
   const icon = upgradeIcon(opt.name);
-  if (icon) drawSkillEffect(icon.row, icon.frame, x + w - 42, y + 42, 58, 0, 0.95);
+  if (icon) {
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = "#061114";
+    ctx.strokeStyle = "#58716d";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x + w - 45, y + 45, 40, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    drawSkillEffect(icon.row, icon.frame, x + w - 45, y + 45, 74, 0, 1);
+  }
   text(opt.name, x + 24, y + 82, 23, "#fff4d8");
   wrap(opt.desc, x + 24, y + 122, w - 48, 20, "#b9d0ca");
 }
