@@ -99,3 +99,16 @@ Testing
 - Verified by hash that all 12 idle cells match and all 12 run cells match, so sprite-frame playback cannot move the character within the draw anchor.
 - Local Playwright run screenshots and idle screenshot passed with no console errors or failed requests.
 - TODO for future art pass: generate or edit a new run strip from this locked source frame, then accept it only if crop inspection and body/feet center variance pass before use.
+
+2026-06-13 IMAE reference pass and survivor structure upgrade
+
+- User logged into the IMAE Guardian Girl web game in an isolated Chrome profile; used it only as gameplay/UI reference, not for copying or extracting copyrighted assets.
+- Captured reference flow screenshots for title, home, stage select, combat, upgrade choices, and result/stat screens.
+- Reworked survivor/game.js toward a short-mission survivor structure: first stage now targets 75 kills, combat clears into a result screen, and the menu is a stage-card selection instead of a plain start panel.
+- Camera was pulled farther out to 0.68, Canvas/CSS smoothing changed away from forced pixelated rendering, and enemy/player values were rebalanced so normal foes take multiple hits without becoming long slogs.
+- Upgrade UI now shows family/type pills, skill level text, large keyed icons, and a bottom skill-slot dock. Chosen upgrades are tracked with name, level, family, and active/passive type.
+- HUD now shows wave, level, kill objective, timer, HP, dash, XP, current element, and top-right skill slots similar to a mobile survivor layout.
+- Result screen now summarizes clear state, rank, time, kills, level, and the build taken during the run.
+- Damage text aggregation now proves stacked damage is applied while hiding absurd x-counts from tiny DOT/rapid blade ticks.
+- Final browser QA screenshots: survivor-final-menu.png, survivor-final-upgrade.png, survivor-final-gameplay.png.
+- Final QA state after 31 seconds: playing, Lv4, 41/75 kills, 2 ranged enemies, 3 enemy bullets, 8 uncollected pickups, fire branch upgrades active, no console errors or failed requests.

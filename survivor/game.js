@@ -1,6 +1,6 @@
 ﻿const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
-ctx.imageSmoothingEnabled = false;
+ctx.imageSmoothingEnabled = true;
 
 const W = canvas.width;
 const H = canvas.height;
@@ -8,7 +8,7 @@ const WORLD_W = 2600;
 const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
-const VIEW_SCALE = 0.78;
+const VIEW_SCALE = 0.68;
 
 const ROW = {
   heroIdle: 0,
@@ -41,9 +41,11 @@ const state = {
   mode: "loading",
   time: 0,
   kills: 0,
+  targetKills: 75,
+  cleared: false,
   level: 1,
   xp: 0,
-  xpNeed: 18,
+  xpNeed: 20,
   shake: 0,
   freeze: 0,
   spawnT: 0,
@@ -59,6 +61,8 @@ const state = {
   effects: [],
   damageText: [],
   options: [],
+  pickedUpgrades: [],
+  skillLevels: {},
   stats: null
 };
 
@@ -66,9 +70,11 @@ function resetGame() {
   state.mode = "playing";
   state.time = 0;
   state.kills = 0;
+  state.targetKills = 75;
+  state.cleared = false;
   state.level = 1;
   state.xp = 0;
-  state.xpNeed = 18;
+  state.xpNeed = 20;
   state.shake = 0;
   state.freeze = 0;
   state.spawnT = 0;
@@ -84,17 +90,19 @@ function resetGame() {
   state.effects = [];
   state.damageText = [];
   state.options = [];
+  state.pickedUpgrades = [];
+  state.skillLevels = {};
   state.stats = {
     speed: 292,
     maxHp: 180,
     regen: 1.4,
     fireRate: 0.38,
-    damage: 28,
+    damage: 30,
     projectileSpeed: 680,
-    magnet: 135,
+    magnet: 130,
     area: 1,
     blades: 2,
-    bladeDamage: 17,
+    bladeDamage: 20,
     pierce: 0,
     dashCooldown: 1.25,
     element: null,
@@ -119,12 +127,12 @@ function resetGame() {
     dashT: 0,
     anim: 0
   };
-  for (let i = 0; i < 10; i++) spawnEnemy("ghoul");
+  for (let i = 0; i < 8; i++) spawnEnemy("ghoul");
 }
 
 function startMenu() {
   state.mode = "menu";
-  state.message = "像素割草新版本";
+  state.message = "短局任務制割草新版本";
 }
 
 function rand(a, b) {
@@ -161,9 +169,9 @@ function spawnEnemy(kind = "ghoul") {
   const pos = edgeSpawn();
   const minute = state.time / 60;
   const templates = {
-    ghoul: { hp: 48 + minute * 14, speed: 66 + minute * 5, damage: 5, radius: 19, xp: 5 },
-    mage: { hp: 78 + minute * 20, speed: 46 + minute * 3, damage: 6, radius: 18, xp: 12, shoot: rand(1.5, 2.4) },
-    brute: { hp: 210 + minute * 48, speed: 38 + minute * 3, damage: 13, radius: 29, xp: 30 }
+    ghoul: { hp: 60 + minute * 18, speed: 67 + minute * 5, damage: 5, radius: 19, xp: 5 },
+    mage: { hp: 96 + minute * 28, speed: 47 + minute * 3, damage: 7, radius: 18, xp: 13, shoot: rand(1.5, 2.4) },
+    brute: { hp: 260 + minute * 60, speed: 39 + minute * 3, damage: 14, radius: 29, xp: 32 }
   };
   const template = templates[kind];
   state.enemies.push({
@@ -238,12 +246,14 @@ function damageEnemy(e, amount, knock = 16) {
   const recent = state.damageText.find((text) => text.enemyId === e.id && text.t > 0.32);
   if (recent) {
     recent.amount += amount;
-    recent.text = Math.round(recent.amount).toString();
+    recent.hits = (recent.hits || 1) + 1;
+    const averageHit = recent.amount / recent.hits;
+    recent.text = recent.hits > 1 && averageHit >= 3 ? `${Math.round(recent.amount)} x${recent.hits}` : Math.round(recent.amount).toString();
     recent.x = e.x;
     recent.y = e.y - 18;
     recent.t = 0.45;
   } else {
-    state.damageText.push({ enemyId: e.id, amount, x: e.x, y: e.y - 18, t: 0.45, text: Math.round(amount).toString() });
+    state.damageText.push({ enemyId: e.id, amount, hits: 1, x: e.x, y: e.y - 18, t: 0.45, text: Math.round(amount).toString() });
   }
   if (e.hp <= 0) killEnemy(e);
 }
@@ -354,7 +364,7 @@ function gainXp(amount) {
   while (state.xp >= state.xpNeed) {
     state.xp -= state.xpNeed;
     state.level++;
-    state.xpNeed = Math.floor(state.xpNeed * 1.22 + 10 + state.level);
+    state.xpNeed = Math.floor(state.xpNeed * 1.28 + 12 + state.level * 2);
     openLevelUp();
   }
 }
@@ -426,6 +436,36 @@ function currentUpgradePool() {
   return pool;
 }
 
+function upgradeType(opt) {
+  if (elementUnlocks.includes(opt) || Object.values(elementBranches).some((branch) => branch.includes(opt))) return "ACTIVE";
+  if (opt.name.includes("旋刃") || opt.name.includes("符火")) return "ACTIVE";
+  return "PASSIVE";
+}
+
+function upgradeFamily(opt) {
+  for (const unlock of elementUnlocks) {
+    if (unlock === opt) return elementNameFromName(opt.name);
+  }
+  for (const [key, branch] of Object.entries(elementBranches)) {
+    if (branch.includes(opt)) return elementName(key);
+  }
+  if (opt.name.includes("旋刃") || opt.name.includes("劍") || opt.name.includes("穿透") || opt.name.includes("符紙")) return "Melee";
+  if (opt.name.includes("聚魂") || opt.name.includes("疾行")) return "Utility";
+  if (opt.name.includes("護命") || opt.name.includes("回春")) return "Survive";
+  return "Talisman";
+}
+
+function elementNameFromName(name) {
+  if (name.includes("火")) return "火系";
+  if (name.includes("水")) return "水系";
+  if (name.includes("雷")) return "雷系";
+  if (name.includes("毒")) return "毒系";
+  if (name.includes("影")) return "影系";
+  if (name.includes("聖")) return "聖系";
+  if (name.includes("風")) return "風系";
+  return "通用";
+}
+
 function openLevelUp() {
   state.mode = "level";
   state.options = [];
@@ -446,6 +486,10 @@ function openLevelUp() {
 function chooseUpgrade(i) {
   const opt = state.options[i];
   if (!opt) return;
+  state.skillLevels[opt.name] = (state.skillLevels[opt.name] || 0) + 1;
+  const existing = state.pickedUpgrades.find((item) => item.name === opt.name);
+  if (existing) existing.level = state.skillLevels[opt.name];
+  else state.pickedUpgrades.push({ name: opt.name, desc: opt.desc, family: upgradeFamily(opt), type: upgradeType(opt), level: 1 });
   opt.apply();
   state.options = [];
   state.mode = "playing";
@@ -467,6 +511,11 @@ function update(dt) {
   updatePickups(dt);
   updateEffects(dt);
   if (state.player.hp <= 0) state.mode = "dead";
+  if (state.kills >= state.targetKills && state.mode === "playing") {
+    state.cleared = true;
+    state.mode = "result";
+    state.message = "任務完成";
+  }
 }
 
 function updatePlayer(dt) {
@@ -526,13 +575,13 @@ function updateSpawns(dt) {
   state.mageT -= dt;
   state.eliteT -= dt;
   if (state.spawnT <= 0) {
-    const pack = 2 + Math.floor(state.time / 34);
+    const pack = 2 + Math.floor(state.time / 45);
     for (let i = 0; i < pack; i++) spawnEnemy("ghoul");
-    state.spawnT = 1.45 - pressure;
+    state.spawnT = 1.72 - pressure;
   }
   if (state.mageT <= 0) {
     spawnEnemy("mage");
-    state.mageT = 7.8 - pressure * 4.5;
+    state.mageT = 9.2 - pressure * 4.5;
   }
   if (state.eliteT <= 0) {
     spawnEnemy("brute");
@@ -691,6 +740,7 @@ function draw() {
   drawHud();
   if (state.mode === "level") drawLevelUp();
   if (state.mode === "dead") drawDead();
+  if (state.mode === "result") drawResult();
 }
 
 function drawBackground() {
@@ -1004,34 +1054,86 @@ function drawDamageText() {
 
 function drawHud() {
   const p = state.player;
-  panel(18, 16, 438, 86);
-  bar(34, 44, 180, 12, p.hp / state.stats.maxHp, "#f04452");
-  bar(34, 72, 180, 12, p.dashT <= 0 ? 1 : 1 - p.dashT / state.stats.dashCooldown, "#47d7ff");
-  bar(248, 72, 170, 12, state.xp / state.xpNeed, "#67f070");
-  text("生命", 34, 36, 14);
-  text("閃避", 34, 64, 14);
-  text(`Lv ${state.level}`, 248, 64, 14);
-  text(`擊殺 ${state.kills}`, 248, 36, 14);
-  text(formatTime(state.time), 370, 36, 18, "#ffe8ad");
-  text(`元素 ${elementName(state.stats.element)}`, 248, 96, 14, elementColor(state.stats.element));
+  panel(18, 16, 500, 104);
+  text(`WAVE ${Math.max(1, Math.ceil(state.kills / 20))}`, 34, 40, 20, "#fff4d8");
+  text(`Lv.${state.level}`, 146, 40, 18);
+  text(`擊殺 ${state.kills}/${state.targetKills}`, 232, 40, 18, "#d9e3df");
+  text(formatTime(state.time), 430, 40, 18, "#ffe8ad");
+  bar(34, 66, 184, 12, p.hp / state.stats.maxHp, "#f04452");
+  bar(34, 94, 184, 12, p.dashT <= 0 ? 1 : 1 - p.dashT / state.stats.dashCooldown, "#47d7ff");
+  bar(248, 94, 230, 12, state.xp / state.xpNeed, "#67f070");
+  text("生命", 34, 58, 14);
+  text("閃避", 34, 86, 14);
+  text(`魂火 ${Math.floor(state.xp)}/${state.xpNeed}`, 248, 86, 14);
+  text(`流派 ${elementName(state.stats.element)}`, 248, 114, 14, elementColor(state.stats.element));
+  drawSkillDock();
   text(state.message, 26, H - 28, 16, "#d8e3df");
 }
 
+function drawSkillDock() {
+  const slots = state.pickedUpgrades.slice(0, 5);
+  for (let i = 0; i < 5; i++) {
+    const x = W - 302 + i * 54;
+    const y = 34;
+    ctx.save();
+    ctx.fillStyle = slots[i] ? "rgba(14, 22, 28, 0.9)" : "rgba(10, 16, 20, 0.62)";
+    ctx.strokeStyle = slots[i] ? "#58716d" : "#29383c";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, 21, 0, TWO_PI);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    if (slots[i]) {
+      const icon = upgradeIcon(slots[i].name);
+      if (icon) drawUpgradeIcon(icon, x, y, 32);
+      center(`${slots[i].level}`, x + 16, y + 20, 12, "#ffe8ad");
+    }
+  }
+}
+
 function drawMenu() {
-  panel(310, 145, 660, 420);
-  center("符火夜行", W / 2, 220, 54, "#fff4d8");
-  center("2D 像素割草：怪潮追擊、遠程火球、符咒自動攻擊。", W / 2, 278, 20, "#d9e3df");
-  center("WASD / 方向鍵移動  |  Shift / Space 閃避  |  吃魂火升級", W / 2, 322, 18, "#a8c8c0");
-  center(state.mode === "loading" ? "載入像素素材中..." : "點擊畫面或按 Enter 開始", W / 2, 428, 30, "#ffe8ad");
+  center("符火夜行", W / 2, 110, 58, "#fff4d8");
+  center("短局任務制割草", W / 2, 154, 22, "#a8c8c0");
+  stageCard(92, 210, 310, 315, "1", "迷霧神社", "擊倒75隻魑影，完成結算", false);
+  stageCard(485, 210, 310, 315, "2", "月下庭園", "帳號等級 5 解鎖", true);
+  stageCard(878, 210, 310, 315, "3", "星落裂谷", "完成神社後解鎖", true);
+  center(state.mode === "loading" ? "載入素材中..." : "點擊第一張關卡或按 Enter 開始", W / 2, 604, 26, "#ffe8ad");
+  center("WASD/方向鍵移動  Shift/Space 閃避  靠近魂火才會吸取", W / 2, 646, 17, "#d9e3df");
+}
+
+function stageCard(x, y, w, h, n, title, desc, locked) {
+  ctx.save();
+  ctx.globalAlpha = locked ? 0.54 : 1;
+  const grd = ctx.createLinearGradient(x, y, x + w, y + h);
+  grd.addColorStop(0, locked ? "#1b2025" : "#15353a");
+  grd.addColorStop(1, locked ? "#0d1115" : "#10202a");
+  ctx.fillStyle = grd;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = locked ? "#465056" : "#7db6aa";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x, y, w, h);
+  center(n, x + 36, y + 54, 30, "#ffe8ad");
+  center(title, x + w / 2, y + 152, 32, "#fff4d8");
+  wrap(desc, x + 34, y + 205, w - 68, 24, locked ? "#aab2b3" : "#d9e3df");
+  if (!locked && sprites.complete) {
+    drawSprite(ROW.heroIdle, 0, x + w - 80, y + 120, 115, false, 0, 1, 64, 112);
+    drawSprite(ROW.ghoul, 0, x + 82, y + 262, 82, false, 0, 1, 64, 112);
+  }
+  if (locked) center("LOCKED", x + w / 2, y + 264, 26, "#eef1f1");
+  ctx.restore();
 }
 
 function drawLevelUp() {
-  panel(235, 126, 810, 468);
-  center("選擇一個符咒強化", W / 2, 190, 36, "#fff4d8");
+  ctx.fillStyle = "rgba(2, 7, 9, 0.66)";
+  ctx.fillRect(0, 0, W, H);
+  center("選擇符咒分支", W / 2, 120, 36, "#fff4d8");
+  center(`Lv.${state.level}  流派：${elementName(state.stats.element)}`, W / 2, 160, 18, "#a8c8c0");
   for (let i = 0; i < state.options.length; i++) {
-    const x = 290 + i * 245;
-    card(x, 260, 210, 210, state.options[i], i + 1);
+    const x = 100 + i * 393;
+    card(x, 220, 320, 252, state.options[i], i + 1);
   }
+  drawUpgradeSlots(W / 2 - 150, 538);
 }
 
 function drawDead() {
@@ -1041,6 +1143,28 @@ function drawDead() {
   center("按 Enter 重新開始", W / 2, 410, 26, "#ffe8ad");
 }
 
+function drawResult() {
+  ctx.fillStyle = "rgba(245, 247, 242, 0.88)";
+  ctx.fillRect(0, 0, W, H);
+  drawSprite(ROW.heroIdle, 0, 300, 615, 430, false, 0, 1, 64, 112);
+  text("CLEAR", 650, 116, 42, "#263338");
+  text(`評級 ${state.level >= 6 ? "A" : state.level >= 4 ? "B" : "C"}+`, 650, 170, 32, "#263338");
+  text(`完成時間 ${formatTime(state.time)}    擊殺 ${state.kills}/${state.targetKills}    等級 ${state.level}`, 650, 218, 20, "#3f4b4f");
+  text("本局技能", 650, 285, 26, "#263338");
+  for (let i = 0; i < Math.min(5, state.pickedUpgrades.length); i++) {
+    const skill = state.pickedUpgrades[i];
+    const y = 324 + i * 58;
+    ctx.fillStyle = "#192126";
+    ctx.fillRect(650, y, 430, 46);
+    const icon = upgradeIcon(skill.name);
+    if (icon) drawUpgradeIcon(icon, 676, y + 23, 34);
+    text(`${skill.name} ${skill.level}/5`, 708, y + 22, 18, "#fff4d8");
+    text(`${skill.type} · ${skill.family}`, 708, y + 42, 13, "#9fd8d0");
+  }
+  if (!state.pickedUpgrades.length) text("尚未取得技能", 650, 334, 18, "#3f4b4f");
+  button(845, 598, 230, 54, "重新開始");
+}
+
 function card(x, y, w, h, opt, n) {
   ctx.fillStyle = "#101b20";
   ctx.fillRect(x, y, w, h);
@@ -1048,6 +1172,8 @@ function card(x, y, w, h, opt, n) {
   ctx.lineWidth = 3;
   ctx.strokeRect(x, y, w, h);
   center(`${n}`, x + 28, y + 34, 24, "#ffe8ad");
+  pill(x + w - 154, y + 24, 66, 26, upgradeFamily(opt), "#647b79");
+  pill(x + w - 82, y + 24, 58, 26, upgradeType(opt), upgradeType(opt) === "ACTIVE" ? "#bb4f45" : "#4b8ca4");
   const icon = upgradeIcon(opt.name);
   if (icon) {
     ctx.save();
@@ -1056,14 +1182,45 @@ function card(x, y, w, h, opt, n) {
     ctx.strokeStyle = "#58716d";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x + w - 45, y + 45, 40, 0, Math.PI * 2);
+    ctx.arc(x + 58, y + 84, 43, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
-    drawUpgradeIcon(icon, x + w - 45, y + 45, 74);
+    drawUpgradeIcon(icon, x + 58, y + 84, 78);
   }
-  text(opt.name, x + 24, y + 82, 23, "#fff4d8");
-  wrap(opt.desc, x + 24, y + 122, w - 48, 20, "#b9d0ca");
+  text(`${opt.name} ${state.skillLevels[opt.name] || 0}/5`, x + 118, y + 83, 22, "#fff4d8");
+  wrap(opt.desc, x + 118, y + 124, w - 142, 20, "#b9d0ca");
+  text("選擇後加入底部技能槽", x + 118, y + h - 34, 15, "#7fe0d4");
+}
+
+function drawUpgradeSlots(x, y) {
+  for (let i = 0; i < 5; i++) {
+    ctx.fillStyle = "rgba(7, 13, 16, 0.92)";
+    ctx.strokeStyle = "#33454a";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x + i * 75, y, 27, 0, TWO_PI);
+    ctx.fill();
+    ctx.stroke();
+    const skill = state.pickedUpgrades[i];
+    if (skill) {
+      const icon = upgradeIcon(skill.name);
+      if (icon) drawUpgradeIcon(icon, x + i * 75, y, 44);
+      center(`${skill.level}`, x + i * 75 + 22, y + 24, 13, "#ffe8ad");
+    } else center("+", x + i * 75, y + 9, 26, "#4f6267");
+  }
+}
+
+function pill(x, y, w, h, value, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+  center(value, x + w / 2, y + 18, 13, "#fff4d8");
+}
+
+function button(x, y, w, h, value) {
+  ctx.fillStyle = "#263338";
+  ctx.fillRect(x, y, w, h);
+  center(value, x + w / 2, y + 35, 24, "#fff4d8");
 }
 
 function upgradeIcon(name) {
@@ -1140,14 +1297,19 @@ function loop(now) {
 }
 
 function clickAt(x, y) {
-  if (state.mode === "menu" || state.mode === "dead") {
+  if (state.mode === "menu") {
+    if (x >= 92 && x <= 402 && y >= 210 && y <= 525) resetGame();
+    else resetGame();
+    return;
+  }
+  if (state.mode === "dead" || state.mode === "result") {
     resetGame();
     return;
   }
   if (state.mode === "level") {
-    const cards = [290, 535, 780];
+    const cards = [100, 493, 886];
     for (let i = 0; i < cards.length; i++) {
-      if (x >= cards[i] && x <= cards[i] + 210 && y >= 260 && y <= 470) chooseUpgrade(i);
+      if (x >= cards[i] && x <= cards[i] + 320 && y >= 220 && y <= 472) chooseUpgrade(i);
     }
   }
 }
@@ -1158,6 +1320,7 @@ window.addEventListener("keydown", (e) => {
   keys.add(k);
   if (state.mode === "menu" && k === "enter") resetGame();
   else if (state.mode === "dead" && k === "enter") resetGame();
+  else if (state.mode === "result" && k === "enter") resetGame();
   else if (state.mode === "level" && ["1", "2", "3"].includes(k)) chooseUpgrade(Number(k) - 1);
   if (k === "f") canvas.requestFullscreen?.();
 });
@@ -1187,10 +1350,13 @@ window.render_game_to_text = () => JSON.stringify({
   effects: state.effects.length,
   damageTexts: state.damageText.slice(0, 6).map((t) => ({ text: t.text, amount: Number(t.amount?.toFixed?.(1) ?? t.text), enemyId: t.enemyId ?? null })),
   kills: state.kills,
+  targetKills: state.targetKills,
+  cleared: state.cleared,
   xp: Number(state.xp.toFixed(1)),
   xpNeed: state.xpNeed,
   magnet: Math.round(state.stats?.magnet ?? 0),
   element: state.stats?.element ?? null,
+  pickedUpgrades: state.pickedUpgrades.map((item) => ({ name: item.name, level: item.level, family: item.family, type: item.type })),
   viewScale: VIEW_SCALE,
   options: state.options.map((opt) => opt.name),
   sprites: {
@@ -1232,6 +1398,15 @@ window.debug_set_upgrade_options = (names) => {
     .slice(0, 3);
   draw();
   return state.options.map((option) => option.name);
+};
+
+window.debug_force_result = () => {
+  if (!state.player) resetGame();
+  state.kills = state.targetKills;
+  state.cleared = true;
+  state.mode = "result";
+  draw();
+  return window.render_game_to_text();
 };
 
 sprites.onload = () => {
