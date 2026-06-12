@@ -35,6 +35,7 @@ const pointer = { x: W / 2, y: H / 2, down: false };
 let raf = 0;
 let last = performance.now();
 let fixedMode = false;
+let nextEnemyId = 1;
 
 const state = {
   mode: "loading",
@@ -73,6 +74,7 @@ function resetGame() {
   state.spawnT = 0;
   state.mageT = 12;
   state.eliteT = 30;
+  nextEnemyId = 1;
   state.message = "撐住怪潮，吃魂火升級。";
   state.camera = { x: 0, y: 0 };
   state.enemies = [];
@@ -165,6 +167,7 @@ function spawnEnemy(kind = "ghoul") {
   };
   const template = templates[kind];
   state.enemies.push({
+    id: nextEnemyId++,
     kind,
     ...pos,
     ...template,
@@ -232,7 +235,16 @@ function damageEnemy(e, amount, knock = 16) {
   const d = norm(e.x - state.player.x, e.y - state.player.y);
   e.x += d.x * knock;
   e.y += d.y * knock;
-  state.damageText.push({ x: e.x, y: e.y - 18, t: 0.45, text: Math.round(amount).toString() });
+  const recent = state.damageText.find((text) => text.enemyId === e.id && text.t > 0.32);
+  if (recent) {
+    recent.amount += amount;
+    recent.text = Math.round(recent.amount).toString();
+    recent.x = e.x;
+    recent.y = e.y - 18;
+    recent.t = 0.45;
+  } else {
+    state.damageText.push({ enemyId: e.id, amount, x: e.x, y: e.y - 18, t: 0.45, text: Math.round(amount).toString() });
+  }
   if (e.hp <= 0) killEnemy(e);
 }
 
@@ -495,7 +507,7 @@ function updatePlayer(dt) {
 
 function updateOrbitBlades(dt) {
   const p = state.player;
-  const radius = 62 * state.stats.area;
+  const radius = 42 * state.stats.area;
   for (let i = 0; i < state.stats.blades; i++) {
     const a = state.time * 3.2 + (i / state.stats.blades) * TWO_PI;
     const bx = p.x + Math.cos(a) * radius;
@@ -962,18 +974,18 @@ function drawElementTrail(b, s) {
 
 function drawPickups() {
   for (const p of state.pickups) {
-    const s = worldToScreen(p.x, p.y + Math.sin(p.t * 8) * 4);
-    drawSprite(ROW.soul, Math.floor(p.t * 10) % 12, s.x, s.y, 56 * VIEW_SCALE);
+    const s = worldToScreen(p.x, p.y);
+    drawSprite(ROW.soul, 0, s.x, s.y, 50 * VIEW_SCALE, false, 0, 1, 64, 64);
   }
 }
 
 function drawOrbitBlades() {
   const p = state.player;
-  const radius = 62 * state.stats.area;
+  const radius = 42 * state.stats.area;
   for (let i = 0; i < state.stats.blades; i++) {
     const a = state.time * 3.2 + (i / state.stats.blades) * TWO_PI;
     const s = worldToScreen(p.x + Math.cos(a) * radius, p.y + Math.sin(a) * radius);
-    drawSprite(ROW.talismanBlade, 6 + (Math.floor(state.time * 14 + i) % 6), s.x, s.y, 62 * state.stats.area * VIEW_SCALE, false, a);
+    drawSprite(ROW.talismanBlade, 6 + (Math.floor(state.time * 14 + i) % 6), s.x, s.y, 54 * state.stats.area * VIEW_SCALE, false, a);
   }
 }
 
@@ -1165,7 +1177,9 @@ window.render_game_to_text = () => JSON.stringify({
   bullets: state.bullets.length,
   enemyBullets: state.enemyBullets.length,
   pickups: state.pickups.length,
+  pickupSamples: state.pickups.slice(0, 4).map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) })),
   effects: state.effects.length,
+  damageTexts: state.damageText.slice(0, 6).map((t) => ({ text: t.text, amount: Number(t.amount?.toFixed?.(1) ?? t.text), enemyId: t.enemyId ?? null })),
   kills: state.kills,
   xp: Number(state.xp.toFixed(1)),
   xpNeed: state.xpNeed,
