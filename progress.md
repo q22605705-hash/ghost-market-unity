@@ -132,3 +132,13 @@ Testing
 - Verified hero animation hashes: idle row unique=12/12 and run row unique=12/12.
 - Rechecked upgrade icons: fire, water, sword, lightning, poison, and holy cards now use distinct frames from the green-screen sprite sheet.
 - Long local playtest reached result/clear: 44.2s, 76/75 kills, Lv5, audio enabled, no console errors, no failed requests. Screenshots: asset-audit-start.png, asset-audit-run.png, asset-audit-upgrade-icons-fixed.png, asset-audit-upgrade-icons-elements.png, asset-audit-long-play.png, run-frame-00.png, run-frame-06.png.
+
+2026-06-13 strict 12-frame animation pass
+
+- User pointed out that many skill/action animations still only used a few frames and looked stiff.
+- Removed all runtime sub-frame animation subsets from drawSkillEffect. Skill effect bursts now advance through frames 0-11 over their lifetime.
+- Updated player talisman bullets from 6-frame use to 12-frame use.
+- Updated orbiting weapon animation from the old 6-frame subset to 12-frame use.
+- Updated soul pickups from a static frame to a 12-frame cycle based on pickup lifetime.
+- Enemy bullets, hero idle/run, and enemy rows already used 12-frame playback and were rechecked.
+- Local QA captured twelve-frame-audit-00.png through twelve-frame-audit-11.png plus twelve-frame-long-clear.png. Long run reached CLEAR at 57s, 75/75 kills, Lv5, fire build, audio enabled, no console errors, no failed requests.

@@ -862,14 +862,7 @@ function drawPlayer() {
 }
 
 function drawSkillEffect(row, frame, x, y, size = 128, angle = 0, alpha = 1) {
-  const frames = [
-    [0, 1],
-    [2, 3],
-    [4, 5],
-    [7, 8, 9],
-    [6, 10, 11]
-  ][row] ?? [frame % 12];
-  drawSprite(ROW.fire, frames[Math.abs(frame) % frames.length], x, y, size, false, angle, alpha, 64, 64);
+  drawSprite(ROW.fire, frame % 12, x, y, size, false, angle, alpha, 64, 64);
 }
 
 function drawUpgradeIcon(icon, x, y, size = 74) {
@@ -879,8 +872,10 @@ function drawUpgradeIcon(icon, x, y, size = 74) {
 function drawEffects() {
   for (const fx of state.effects) {
     const s = worldToScreen(fx.x, fx.y);
-    const t = Math.max(0, fx.life / fx.maxLife);
-    drawSkillEffect(fx.row, fx.frame, s.x, s.y, fx.size * VIEW_SCALE * (1 + (1 - t) * 0.12), fx.angle, fx.alpha * t);
+    const t = clamp(fx.life / fx.maxLife, 0, 1);
+    const progress = 1 - t;
+    const frame = Math.min(11, Math.floor(progress * 12));
+    drawSkillEffect(fx.row, frame, s.x, s.y, fx.size * VIEW_SCALE * (1 + progress * 0.12), fx.angle, fx.alpha * t);
   }
 }
 
@@ -902,7 +897,7 @@ function drawBullets() {
   for (const b of state.bullets) {
     const s = worldToScreen(b.x, b.y);
     drawElementTrail(b, s);
-    drawSprite(ROW.talismanBlade, Math.floor(b.anim) % 6, s.x, s.y, 62 * state.stats.area * VIEW_SCALE, false, b.angle);
+    drawSprite(ROW.talismanBlade, Math.floor(b.anim) % 12, s.x, s.y, 62 * state.stats.area * VIEW_SCALE, false, b.angle);
   }
   for (const b of state.enemyBullets) {
     const s = worldToScreen(b.x, b.y);
@@ -962,7 +957,7 @@ function drawElementTrail(b, s) {
 function drawPickups() {
   for (const p of state.pickups) {
     const s = worldToScreen(p.x, p.y);
-    drawSprite(ROW.soul, 0, s.x, s.y, 50 * VIEW_SCALE, false, 0, 1, 64, 64);
+    drawSprite(ROW.soul, Math.floor(p.t * 12) % 12, s.x, s.y, 50 * VIEW_SCALE, false, 0, 1, 64, 64);
   }
 }
 
@@ -972,7 +967,7 @@ function drawOrbitBlades() {
   for (let i = 0; i < state.stats.blades; i++) {
     const a = state.time * 3.2 + (i / state.stats.blades) * TWO_PI;
     const s = worldToScreen(p.x + Math.cos(a) * radius, p.y + Math.sin(a) * radius);
-    drawSprite(ROW.talismanBlade, 6 + (Math.floor(state.time * 14 + i) % 6), s.x, s.y, 54 * state.stats.area * VIEW_SCALE, false, a);
+    drawSprite(ROW.talismanBlade, Math.floor(state.time * 12 + i) % 12, s.x, s.y, 54 * state.stats.area * VIEW_SCALE, false, a);
   }
 }
 
