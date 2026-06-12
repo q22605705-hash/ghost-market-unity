@@ -73,3 +73,11 @@ Testing
 - Regenerated the full 12x8 white-matte sheet with larger per-cell margins, replaced survivor/assets/raw/gpt-cute-cartoon-survivor-whitematte.png, and reran scripts/normalize-cute-cartoon-survivor-sheet.mjs.
 - Adjusted the sprite quality gate so character rows remain strict while small effect frames can pass with a lower minimum opaque-pixel count.
 - Local Playwright verification passed with no console errors or failed requests. Screenshots confirmed the game now shows the original paper-mage silhouette and upgrade icons still render correctly.
+
+2026-06-12 cat-element hero revision
+
+- User asked to add cat elements back into the protagonist while avoiding the earlier reference similarity risk.
+- Replaced the hero with an original lucky-talisman cat mage: cream maneki-neko inspired face, red/gold ritual cap, talisman scarf ribbons, bell belt, brush tail, and calligraphy charm brush.
+- Kept the design away from the risky reference markers: no black hooded cat silhouette, no yellow half-lidded eyes, no teal pendant, and no floating spear.
+- Reran sprite normalization and verified 96 placements with no quality failures.
+- Local Playwright verification passed with no console errors or failed requests. Hero idle/run anchors stayed centered around x=63.5 with bottom y=112.
