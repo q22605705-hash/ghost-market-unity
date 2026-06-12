@@ -36,6 +36,9 @@ let raf = 0;
 let last = performance.now();
 let fixedMode = false;
 let nextEnemyId = 1;
+let audioCtx = null;
+let musicTimer = 0;
+let audioMuted = false;
 
 const state = {
   mode: "loading",
@@ -67,6 +70,7 @@ const state = {
 };
 
 function resetGame() {
+  startAudio();
   state.mode = "playing";
   state.time = 0;
   state.kills = 0;
@@ -128,6 +132,67 @@ function resetGame() {
     anim: 0
   };
   for (let i = 0; i < 8; i++) spawnEnemy("ghoul");
+}
+
+function startAudio() {
+  if (audioMuted || audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  audioCtx.resume?.();
+  scheduleMusic();
+}
+
+function scheduleMusic() {
+  if (!audioCtx || audioMuted) return;
+  const beat = 0.42;
+  const rootTime = audioCtx.currentTime + 0.04;
+  for (let i = 0; i < 16; i++) {
+    const t = rootTime + i * beat;
+    const bass = [110, 110, 146.83, 98][i % 4];
+    tone(bass, t, 0.12, "triangle", 0.045);
+    if (i % 2 === 0) noise(t + 0.02, 0.035, 0.018);
+    if (i % 4 === 2) tone(659.25, t + 0.12, 0.08, "sine", 0.026);
+    if (i % 8 === 6) tone(783.99, t + 0.16, 0.1, "sine", 0.022);
+  }
+  musicTimer = window.setTimeout(scheduleMusic, beat * 16 * 1000 - 80);
+}
+
+function tone(freq, when = 0, duration = 0.08, type = "sine", gain = 0.05) {
+  if (!audioCtx || audioMuted) return;
+  const osc = audioCtx.createOscillator();
+  const amp = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, when);
+  amp.gain.setValueAtTime(0.0001, when);
+  amp.gain.exponentialRampToValueAtTime(gain, when + 0.012);
+  amp.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+  osc.connect(amp).connect(audioCtx.destination);
+  osc.start(when);
+  osc.stop(when + duration + 0.02);
+}
+
+function noise(when = 0, duration = 0.05, gain = 0.025) {
+  if (!audioCtx || audioMuted) return;
+  const length = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
+  const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+  const src = audioCtx.createBufferSource();
+  const amp = audioCtx.createGain();
+  src.buffer = buffer;
+  amp.gain.setValueAtTime(gain, when);
+  amp.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+  src.connect(amp).connect(audioCtx.destination);
+  src.start(when);
+}
+
+function sfx(name) {
+  if (!audioCtx || audioMuted) return;
+  const now = audioCtx.currentTime;
+  if (name === "hit") tone(360, now, 0.04, "square", 0.018);
+  if (name === "shoot") tone(740, now, 0.035, "triangle", 0.014);
+  if (name === "hurt") { tone(92, now, 0.16, "sawtooth", 0.045); noise(now, 0.12, 0.025); }
+  if (name === "level") { tone(523.25, now, 0.08, "sine", 0.04); tone(783.99, now + 0.08, 0.12, "sine", 0.04); }
+  if (name === "clear") { tone(392, now, 0.12, "triangle", 0.045); tone(523.25, now + 0.13, 0.12, "triangle", 0.045); tone(783.99, now + 0.26, 0.2, "triangle", 0.04); }
 }
 
 function startMenu() {
@@ -216,6 +281,7 @@ function fireAtNearest() {
     element: state.stats.element,
     anim: 0
   });
+  if (Math.random() < 0.45) sfx("shoot");
 }
 
 function radialBurst() {
@@ -239,6 +305,7 @@ function radialBurst() {
 
 function damageEnemy(e, amount, knock = 16) {
   e.hp -= amount;
+  if (knock > 0 && amount >= 8 && Math.random() < 0.35) sfx("hit");
   e.hit = 0.1;
   const d = norm(e.x - state.player.x, e.y - state.player.y);
   e.x += d.x * knock;
@@ -365,6 +432,7 @@ function gainXp(amount) {
     state.xp -= state.xpNeed;
     state.level++;
     state.xpNeed = Math.floor(state.xpNeed * 1.28 + 12 + state.level * 2);
+    sfx("level");
     openLevelUp();
   }
 }
@@ -515,6 +583,7 @@ function update(dt) {
     state.cleared = true;
     state.mode = "result";
     state.message = "任務完成";
+    sfx("clear");
   }
 }
 
@@ -639,6 +708,7 @@ function updateEnemies(dt) {
       p.invuln = 0.6;
       state.freeze = 0.08;
       state.shake = 8;
+      sfx("hurt");
       state.message = "受傷！用 Shift/Space 閃避，吃魂火升級。";
     }
   }
@@ -671,6 +741,7 @@ function updateBullets(dt) {
       state.player.hp -= b.damage;
       state.player.invuln = 0.55;
       state.shake = 7;
+      sfx("hurt");
       b.life = -1;
     }
     if (b.life <= 0) state.enemyBullets.splice(state.enemyBullets.indexOf(b), 1);
@@ -1322,6 +1393,14 @@ window.addEventListener("keydown", (e) => {
   else if (state.mode === "dead" && k === "enter") resetGame();
   else if (state.mode === "result" && k === "enter") resetGame();
   else if (state.mode === "level" && ["1", "2", "3"].includes(k)) chooseUpgrade(Number(k) - 1);
+  if (k === "m") {
+    audioMuted = !audioMuted;
+    if (audioMuted) {
+      window.clearTimeout(musicTimer);
+      audioCtx?.close?.();
+      audioCtx = null;
+    } else startAudio();
+  }
   if (k === "f") canvas.requestFullscreen?.();
 });
 
@@ -1374,6 +1453,10 @@ window.render_game_to_text = () => JSON.stringify({
     naturalWidth: skillIcons.naturalWidth,
     naturalHeight: skillIcons.naturalHeight,
     keyed: Boolean(keyedSkillIcons)
+  },
+  audio: {
+    enabled: Boolean(audioCtx),
+    muted: audioMuted
   },
   note: "All gameplay actors are drawn from survivor-sprites.png."
 });

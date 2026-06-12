@@ -112,3 +112,14 @@ Testing
 - Damage text aggregation now proves stacked damage is applied while hiding absurd x-counts from tiny DOT/rapid blade ticks.
 - Final browser QA screenshots: survivor-final-menu.png, survivor-final-upgrade.png, survivor-final-gameplay.png.
 - Final QA state after 31 seconds: playing, Lv4, 41/75 kills, 2 ranged enemies, 3 enemy bullets, 8 uncollected pickups, fire branch upgrades active, no console errors or failed requests.
+
+2026-06-13 green-screen art rebuild and audio pass
+
+- User rejected the previous delivery because music/SFX were missing, animation art was not truly rebuilt, white-edge artifacts remained, and the character still visually drifted.
+- Generated a new original GPT green-screen sprite sheet with a cute chibi cat-talisman hero, shadow blob enemies, lantern caster, stone brute, soul crystals, elemental effects, talismans, and blade/projectile rows. The sheet is saved at survivor/assets/raw/gpt-cute-cartoon-survivor-greenmatte.png.
+- Added scripts/normalize-green-cartoon-survivor-sheet.mjs for chroma-green keying, green spill cleanup, bottom-center character anchoring, and quality reporting.
+- Added scripts/defringe-and-animate-survivor-sheet.mjs as a second gate that removes remaining white fringe, locks hero feet at y=112, and rebuilds hero idle/run into 12 visible frames without moving the feet.
+- Final sprite quality report: hero idle centerRange 3, run centerRange 1.5, both bottomRange 0, both whiteEdgePixels 0.
+- Added WebAudio background music and SFX for shooting, hit impact, player hurt, level-up, and clear. Audio starts after player input and can be toggled with M.
+- Local browser QA screenshots: survivor-new-art-menu.png, survivor-new-art-start.png, survivor-new-art-gameplay.png.
+- Local QA state after 18 seconds: playing, Lv3, 20/75 kills, one ranged enemy, three enemy bullets, two field pickups, audio enabled, no console errors or failed requests.
