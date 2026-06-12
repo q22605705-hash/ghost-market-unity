@@ -53,3 +53,15 @@ Testing
 - Zoom/element test reached around 58s at Lv5 with 57 kills and 66 enemies alive, confirming enemies survive longer and pressure is readable at the wider zoom.
 - Level-up logs confirmed Lv2 offered elemental affinities and later level-ups offered the selected element's branch upgrades.
 - Skill visual test confirmed skill-effects.png loads at 1024x768 with 0 opaque green pixels, Lv2 can offer new branches such as Wind, and later level-ups guarantee matching branch upgrades.
+
+2026-06-12 cute non-pixel art pass
+
+- Generated a new GPT white-matte cartoon survivor sheet based on the user's cute dark hooded reference direction, without copying the referenced character exactly.
+- Added scripts/normalize-cute-cartoon-survivor-sheet.mjs to remove edge-connected matte, clean bottom ground-shadow remnants, and anchor character rows at bottom-center.
+- Replaced survivor/assets/survivor-sprites.png with the cute non-pixel hero, rounded shadow enemy, lantern caster, stone brute, teal soul pickups, teal projectiles, and talisman/blade frames.
+- Added survivor/assets/survivor-art.json and survivor/assets/survivor-art-quality.json verification output for 96 placements.
+- Updated the game background toward a softer dark teal fantasy floor instead of the previous hard cyber grid.
+- Added upgrade icon fallbacks for neutral/base upgrades, including 劍符增傷, 聚魂鈴, 護命符, 大符紙, 穿透符, and 回春印.
+- Local Playwright test confirmed no console errors, no failed requests, survivor-sprites.png loaded at 1536x1024, and upgrade cards display the new icons centered in their circles.
+- Anchor sanity check confirmed hero idle/run frames remain centered around x=63.5 and run bottoms stay near y=112, reducing frame-to-frame drift.
+- Note: the installed develop-web-game client could not resolve Playwright from the skill directory, so verification used the project's own Playwright dependency through an inline script instead.

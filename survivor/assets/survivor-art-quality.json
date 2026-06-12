@@ -1,39 +1,5 @@
 {
-  "source": "GPT-generated cute cartoon white-matte sheet, edge-connected matte removed and anchored",
-  "raw": "assets/raw/gpt-cute-cartoon-survivor-whitematte.png",
-  "texture": "assets/survivor-sprites.png",
-  "cell": 128,
-  "columns": 12,
-  "rows": {
-    "heroIdle": 0,
-    "heroRun": 1,
-    "ghoul": 2,
-    "mage": 3,
-    "brute": 4,
-    "soul": 5,
-    "enemyFire": 6,
-    "talismanAndBlade": 7
-  },
-  "anchors": {
-    "characterRows": {
-      "x": 64,
-      "y": 112,
-      "mode": "bottom-center feet"
-    },
-    "effectRows": {
-      "x": 64,
-      "y": 64,
-      "mode": "center"
-    }
-  },
-  "verification": {
-    "transparentPixels": 1293307,
-    "matteLikePixels": 14154,
-    "opaquePixels": 279557,
-    "width": 1536,
-    "height": 1024,
-    "placements": 96
-  },
+  "failures": [],
   "placements": [
     {
       "row": 0,
