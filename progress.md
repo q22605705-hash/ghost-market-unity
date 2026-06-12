@@ -65,3 +65,11 @@ Testing
 - Local Playwright test confirmed no console errors, no failed requests, survivor-sprites.png loaded at 1536x1024, and upgrade cards display the new icons centered in their circles.
 - Anchor sanity check confirmed hero idle/run frames remain centered around x=63.5 and run bottoms stay near y=112, reducing frame-to-frame drift.
 - Note: the installed develop-web-game client could not resolve Playwright from the skill directory, so verification used the project's own Playwright dependency through an inline script instead.
+
+2026-06-12 copyright-safety art revision
+
+- User flagged the first cute dark hero as too close to the provided reference. Replaced it immediately with a legally distinct original paper-talisman spirit mage direction.
+- New hero avoids cat ears, animal hood silhouette, yellow half-lidded eyes, teal pendant, and floating spear. Its identifiers are a folded cream paper hat, black ink face, mint dot eyes, talisman ribbons, navy cloak, and small wooden charm wand.
+- Regenerated the full 12x8 white-matte sheet with larger per-cell margins, replaced survivor/assets/raw/gpt-cute-cartoon-survivor-whitematte.png, and reran scripts/normalize-cute-cartoon-survivor-sheet.mjs.
+- Adjusted the sprite quality gate so character rows remain strict while small effect frames can pass with a lower minimum opaque-pixel count.
+- Local Playwright verification passed with no console errors or failed requests. Screenshots confirmed the game now shows the original paper-mage silhouette and upgrade icons still render correctly.

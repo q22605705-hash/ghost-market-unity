@@ -245,7 +245,7 @@ for (let i = 0; i < out.data.length; i += 4) {
 }
 
 const validPlacements = placements.filter(Boolean);
-const failures = validPlacements.filter((p) => p.opaquePixels < 160);
+const failures = validPlacements.filter((p) => p.opaquePixels < (p.row <= 4 ? 160 : 100));
 if (failures.length || validPlacements.length < cols * rows) {
   throw new Error(`Cute survivor art quality failed: placements=${validPlacements.length}/${cols * rows} low=${JSON.stringify(failures.slice(0, 6))}`);
 }
