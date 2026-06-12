@@ -47,8 +47,8 @@ function isWhiteMatte(r, g, b, a) {
   if (a <= 0) return false;
   const spread = Math.max(r, g, b) - Math.min(r, g, b);
   const avg = (r + g + b) / 3;
-  return (r > 188 && g > 188 && b > 188 && spread < 64)
-    || (avg > 132 && spread < 78);
+  return (r > 222 && g > 222 && b > 222 && spread < 48)
+    || (avg > 238 && spread < 36);
 }
 
 function isLowSaturation(color) {
@@ -57,6 +57,13 @@ function isLowSaturation(color) {
   const spread = Math.max(r, g, b) - Math.min(r, g, b);
   const avg = (r + g + b) / 3;
   return avg < 170 && spread < 54;
+}
+
+function isPureWhiteResidue(color) {
+  const [r, g, b, a] = color;
+  if (a <= 0) return false;
+  const spread = Math.max(r, g, b) - Math.min(r, g, b);
+  return r > 238 && g > 238 && b > 238 && spread < 26;
 }
 
 function removeGroundShadows(raw, cellHeight) {
@@ -157,6 +164,7 @@ function cellImage(row, col) {
       if (pixels.has(`${x},${y}`)) continue;
       const color = read(source, x, y);
       if (color[3] < 8) continue;
+      if (isPureWhiteResidue(color)) continue;
       raw.push({ x: x - x0, y: y - y0, sourceX: x, sourceY: y, color });
     }
   }
@@ -183,7 +191,12 @@ function copyCell(row, col, anchor = "feet") {
   const maxW = anchor === "feet" ? 112 : 104;
   const maxH = anchor === "feet" ? 112 : 104;
   const scale = Math.min(maxW / src.width, maxH / src.height, 1);
-  const srcAnchorX = src.minX + src.width / 2;
+  const rawCellX0 = Math.round(col * source.width / cols);
+  const rawCellY0 = Math.round(row * source.height / rows);
+  const rawCellX1 = col === cols - 1 ? source.width : Math.round((col + 1) * source.width / cols);
+  const rawCellY1 = row === rows - 1 ? source.height : Math.round((row + 1) * source.height / rows);
+  const useFixedFeetAnchor = row <= 1;
+  const srcAnchorX = useFixedFeetAnchor ? rawCellX0 + (rawCellX1 - rawCellX0) / 2 : src.minX + src.width / 2;
   const srcAnchorY = anchor === "feet" ? src.maxY : src.minY + src.height / 2;
   const dstAnchorX = outX + 64;
   const dstAnchorY = outY + (anchor === "feet" ? 112 : 64);
@@ -198,6 +211,7 @@ function copyCell(row, col, anchor = "feet") {
     anchor,
     sourceBounds: { minX: src.minX, minY: src.minY, maxX: src.maxX, maxY: src.maxY, width: src.width, height: src.height },
     scale: Number(scale.toFixed(3)),
+    sourceAnchor: { x: Number((srcAnchorX - rawCellX0).toFixed(2)), y: Number((srcAnchorY - rawCellY0).toFixed(2)), mode: useFixedFeetAnchor ? "fixed-cell-feet" : anchor },
     dstAnchor: { x: 64, y: anchor === "feet" ? 112 : 64 },
     opaquePixels: src.kept.length
   };

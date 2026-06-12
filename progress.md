@@ -81,3 +81,12 @@ Testing
 - Kept the design away from the risky reference markers: no black hooded cat silhouette, no yellow half-lidded eyes, no teal pendant, and no floating spear.
 - Reran sprite normalization and verified 96 placements with no quality failures.
 - Local Playwright verification passed with no console errors or failed requests. Hero idle/run anchors stayed centered around x=63.5 with bottom y=112.
+
+2026-06-12 sprite pipeline correction
+
+- User clarified the required image order: crop first, inspect the cropped image, reject and regenerate if GPT frames touch or merge, then create continuous action frames using the feet as the center anchor.
+- Fixed normalize-cute-cartoon-survivor-sheet.mjs so hero idle/run rows use fixed-cell feet anchoring instead of visible bounding-box center. This prevents brush, tail, ribbons, and weapons from shifting the body anchor.
+- Narrowed the luma-key matte detection so cream-white cat faces are not removed as background.
+- Added pure-white residue cleanup for orphan matte pixels after crop/keying.
+- Reran normalization and verified all 96 placements pass. Metadata now records hero sourceAnchor.mode as fixed-cell-feet.
+- Local Playwright run/idle screenshots passed with no console errors or failed requests.
