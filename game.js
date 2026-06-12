@@ -694,19 +694,22 @@ function draw() {
 }
 
 function drawBackground() {
-  ctx.fillStyle = "#071016";
+  ctx.fillStyle = "#071414";
   ctx.fillRect(0, 0, W, H);
-  const grid = 96 * VIEW_SCALE;
-  const cx = -(state.camera.x * VIEW_SCALE) % grid;
-  const cy = -(state.camera.y * VIEW_SCALE) % grid;
-  for (let y = cy - grid; y < H + grid; y += grid) {
-    for (let x = cx - grid; x < W + grid; x += grid) {
-      ctx.fillStyle = ((x + y) / 96) % 2 === 0 ? "#0d1b20" : "#0a151a";
-      ctx.fillRect(x, y, grid, grid);
-      ctx.fillStyle = "#163039";
-      ctx.fillRect(x + 8 * VIEW_SCALE, y + 88 * VIEW_SCALE, 52 * VIEW_SCALE, 4 * VIEW_SCALE);
-      ctx.fillStyle = "#2a604f";
-      if ((Math.round((x + y) / grid)) % 2 === 0) ctx.fillRect(x + 72 * VIEW_SCALE, y + 22 * VIEW_SCALE, 8 * VIEW_SCALE, 22 * VIEW_SCALE);
+  const tile = 128 * VIEW_SCALE;
+  const cx = -(state.camera.x * VIEW_SCALE) % tile;
+  const cy = -(state.camera.y * VIEW_SCALE) % tile;
+  for (let y = cy - tile; y < H + tile; y += tile) {
+    for (let x = cx - tile; x < W + tile; x += tile) {
+      const parity = (Math.round((x - cx) / tile) + Math.round((y - cy) / tile)) % 2;
+      ctx.fillStyle = parity ? "#0d1d1b" : "#0a1818";
+      ctx.fillRect(x, y, tile, tile);
+      ctx.fillStyle = "#14312f";
+      ctx.fillRect(x + 12 * VIEW_SCALE, y + 98 * VIEW_SCALE, 54 * VIEW_SCALE, 5 * VIEW_SCALE);
+      ctx.fillStyle = "#1d4b43";
+      if (parity === 0) ctx.fillRect(x + 86 * VIEW_SCALE, y + 24 * VIEW_SCALE, 7 * VIEW_SCALE, 28 * VIEW_SCALE);
+      ctx.fillStyle = "#102826";
+      if (parity !== 0) ctx.fillRect(x + 30 * VIEW_SCALE, y + 32 * VIEW_SCALE, 38 * VIEW_SCALE, 4 * VIEW_SCALE);
     }
   }
 }
@@ -1064,6 +1067,9 @@ function card(x, y, w, h, opt, n) {
 }
 
 function upgradeIcon(name) {
+  if (name.includes("劍") || name.includes("增傷") || name.includes("大符") || name.includes("穿透") || name.includes("符紙")) return { row: 5, frame: 7, iconRow: 1 };
+  if (name.includes("聚魂")) return { row: 5, frame: 4, iconRow: 1 };
+  if (name.includes("護命") || name.includes("回春")) return { row: 5, frame: 5, iconRow: 1 };
   if (name.includes("火") || name.includes("灼") || name.includes("爆") || name.includes("隕")) return { row: 5, frame: 0, iconRow: 1 };
   if (name.includes("水") || name.includes("寒") || name.includes("霜") || name.includes("冰")) return { row: 5, frame: 1, iconRow: 1 };
   if (name.includes("雷") || name.includes("風暴") || name.includes("連鎖")) return { row: 5, frame: 2, iconRow: 1 };
