@@ -9,6 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
+const ASSET_VERSION = "art-audio-20260613";
 
 const ROW = {
   heroIdle: 0,
@@ -22,11 +23,11 @@ const ROW = {
 };
 
 const sprites = new Image();
-sprites.src = "./assets/survivor-sprites.png";
+sprites.src = `./assets/survivor-sprites.png?v=${ASSET_VERSION}`;
 const skillEffects = new Image();
-skillEffects.src = "./assets/skill-effects.png";
+skillEffects.src = `./assets/skill-effects.png?v=${ASSET_VERSION}`;
 const skillIcons = new Image();
-skillIcons.src = "./assets/raw/gpt-skill-icons-whitematte.png";
+skillIcons.src = `./assets/raw/gpt-skill-icons-whitematte.png?v=${ASSET_VERSION}`;
 let keyedSkillIcons = null;
 
 const keys = new Set();
