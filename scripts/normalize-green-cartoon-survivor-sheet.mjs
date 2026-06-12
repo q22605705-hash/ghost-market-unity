@@ -51,6 +51,59 @@ function isWhiteEdge([r, g, b, a]) {
   return (r + g + b) / 3 > 218 && spread < 48;
 }
 
+function isNearWhite([r, g, b, a]) {
+  if (a < 16) return false;
+  const spread = Math.max(r, g, b) - Math.min(r, g, b);
+  return (r + g + b) / 3 > 218 && spread < 48;
+}
+
+function hasTransparentNeighbor(x, y) {
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    if (read(out, x + dx, y + dy)[3] < 16) return true;
+  }
+  return false;
+}
+
+function postCleanEdges() {
+  let removedWhite = 0;
+  let tintedWhite = 0;
+  let clearedFoot = 0;
+  for (let y = 0; y < out.height; y++) {
+    for (let x = 0; x < out.width; x++) {
+      const color = read(out, x, y);
+      const [r, g, b, a] = color;
+      if (a <= 0) continue;
+      if (isGreenMatte(r, g, b, a)) {
+        write(x, y, [0, 0, 0, 0]);
+        continue;
+      }
+      if (isNearWhite(color) && hasTransparentNeighbor(x, y)) {
+        if (r > 238 && g > 238 && b > 238) {
+          write(x, y, [0, 0, 0, 0]);
+          removedWhite++;
+        } else {
+          write(x, y, [Math.min(r, 204), Math.min(g, 198), Math.min(b, 178), Math.min(a, 190)]);
+          tintedWhite++;
+        }
+      }
+    }
+  }
+  for (let row = 0; row <= 1; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x0 = col * cell;
+      const y0 = row * cell;
+      for (let y = 113; y < cell; y++) {
+        for (let x = 0; x < cell; x++) {
+          if (read(out, x0 + x, y0 + y)[3] <= 0) continue;
+          write(x0 + x, y0 + y, [0, 0, 0, 0]);
+          clearedFoot++;
+        }
+      }
+    }
+  }
+  return { removedWhite, tintedWhite, clearedFoot };
+}
+
 function cellPixels(row, col) {
   const x0 = Math.round(col * source.width / cols);
   const y0 = Math.round(row * source.height / rows);
@@ -85,7 +138,7 @@ function copyCell(row, col) {
   const character = row <= 4;
   const dstAnchorX = col * cell + 64;
   const dstAnchorY = row * cell + (character ? 112 : 64);
-  const srcAnchorX = character ? 64 : src.minX + src.width / 2;
+  const srcAnchorX = src.minX + src.width / 2;
   const srcAnchorY = character ? src.maxY : src.minY + src.height / 2;
   const maxW = character ? 112 : 116;
   const maxH = character ? 112 : 116;
@@ -97,7 +150,21 @@ function copyCell(row, col) {
     if (character && dy > row * cell + 112) continue;
     write(dx, dy, p.color);
   }
-  return { row, col, character, scale: Number(scale.toFixed(3)), sourceBounds: src };
+  return {
+    row,
+    col,
+    character,
+    scale: Number(scale.toFixed(3)),
+    sourceBounds: {
+      minX: src.minX,
+      minY: src.minY,
+      maxX: src.maxX,
+      maxY: src.maxY,
+      width: src.width,
+      height: src.height,
+      pixels: src.pixels.length
+    }
+  };
 }
 
 function localBounds(row, col) {
@@ -129,6 +196,7 @@ const placements = [];
 for (let row = 0; row < rows; row++) {
   for (let col = 0; col < cols; col++) placements.push(copyCell(row, col));
 }
+const cleanup = postCleanEdges();
 
 const bounds = [];
 for (let row = 0; row < rows; row++) {
@@ -148,5 +216,5 @@ const heroRows = [0, 1].map((row) => {
 });
 
 fs.writeFileSync(outPath, PNG.sync.write(out));
-fs.writeFileSync(qualityPath, JSON.stringify({ source: rawPath, placements, rows: heroRows, bounds }, null, 2));
-console.log(JSON.stringify({ rows: heroRows }, null, 2));
+fs.writeFileSync(qualityPath, JSON.stringify({ source: rawPath, cleanup, placements, rows: heroRows, bounds }, null, 2));
+console.log(JSON.stringify({ cleanup, rows: heroRows }, null, 2));

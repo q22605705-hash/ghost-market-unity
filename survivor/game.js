@@ -24,11 +24,6 @@ const ROW = {
 
 const sprites = new Image();
 sprites.src = `./assets/survivor-sprites.png?v=${ASSET_VERSION}`;
-const skillEffects = new Image();
-skillEffects.src = `./assets/skill-effects.png?v=${ASSET_VERSION}`;
-const skillIcons = new Image();
-skillIcons.src = `./assets/raw/gpt-skill-icons-whitematte.png?v=${ASSET_VERSION}`;
-let keyedSkillIcons = null;
 
 const keys = new Set();
 const pressed = new Set();
@@ -867,151 +862,18 @@ function drawPlayer() {
 }
 
 function drawSkillEffect(row, frame, x, y, size = 128, angle = 0, alpha = 1) {
-  if (!skillEffects.complete) return;
-  const sx = (frame % 8) * 128;
-  const sy = row * 128;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(Math.round(x), Math.round(y));
-  if (angle) ctx.rotate(angle);
-  ctx.drawImage(skillEffects, sx, sy, 128, 128, -size / 2, -size / 2, size, size);
-  ctx.restore();
-}
-
-function buildKeyedSkillIcons() {
-  if (!skillIcons.complete || keyedSkillIcons) return;
-  const canvas = document.createElement("canvas");
-  canvas.width = skillIcons.naturalWidth;
-  canvas.height = skillIcons.naturalHeight;
-  const kctx = canvas.getContext("2d", { willReadFrequently: true });
-  kctx.drawImage(skillIcons, 0, 0);
-  const image = kctx.getImageData(0, 0, canvas.width, canvas.height);
-  const { data, width, height } = image;
-  const cols = 8;
-  const rows = 2;
-  const cellW = Math.floor(width / cols);
-  const cellH = Math.floor(height / rows);
-
-  const isMatte = (x, y) => {
-    const i = (y * width + x) * 4;
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const a = data[i + 3];
-    return a > 0 && r > 180 && g > 180 && b > 180 && Math.max(r, g, b) - Math.min(r, g, b) < 55;
-  };
-
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const x0 = Math.round(col * width / cols);
-      const y0 = Math.round(row * height / rows);
-      const x1 = col === cols - 1 ? width : Math.round((col + 1) * width / cols);
-      const y1 = row === rows - 1 ? height : Math.round((row + 1) * height / rows);
-      const localW = x1 - x0;
-      const localH = y1 - y0;
-      const seen = new Uint8Array(localW * localH);
-      const queue = [];
-      const push = (x, y) => {
-        if (x < x0 || y < y0 || x >= x1 || y >= y1) return;
-        const lx = x - x0;
-        const ly = y - y0;
-        const p = ly * localW + lx;
-        if (seen[p] || !isMatte(x, y)) return;
-        seen[p] = 1;
-        queue.push([x, y]);
-      };
-      for (let x = x0; x < x1; x++) {
-        push(x, y0);
-        push(x, y1 - 1);
-      }
-      for (let y = y0; y < y1; y++) {
-        push(x0, y);
-        push(x1 - 1, y);
-      }
-      for (let q = 0; q < queue.length; q++) {
-        const [x, y] = queue[q];
-        const i = (y * width + x) * 4;
-        data[i + 3] = 0;
-        push(x + 1, y);
-        push(x - 1, y);
-        push(x, y + 1);
-        push(x, y - 1);
-      }
-    }
-  }
-  const bounds = [];
-  for (let row = 0; row < rows; row++) {
-    const y0 = Math.round(row * height / rows);
-    const y1 = row === rows - 1 ? height : Math.round((row + 1) * height / rows);
-    const counts = [];
-    for (let x = 0; x < width; x++) {
-      let count = 0;
-      for (let y = y0; y < y1; y++) {
-        const i = (y * width + x) * 4;
-        if (data[i + 3] >= 24 && !isMatte(x, y)) count++;
-      }
-      counts[x] = count;
-    }
-    const groups = [];
-    for (let x = 0; x < width; x++) {
-      if (counts[x] <= 2) continue;
-      const last = groups[groups.length - 1];
-      if (!last || x > last.end + 18) groups.push({ start: x, end: x });
-      else last.end = x;
-    }
-    const usable = groups.length >= cols
-      ? groups.slice(0, cols)
-      : Array.from({ length: cols }, (_, col) => ({
-        start: Math.round(col * width / cols),
-        end: col === cols - 1 ? width - 1 : Math.round((col + 1) * width / cols) - 1
-      }));
-
-    for (let col = 0; col < cols; col++) {
-      const x0 = usable[col].start;
-      const x1 = usable[col].end + 1;
-      let minX = Infinity;
-      let minY = Infinity;
-      let maxX = -Infinity;
-      let maxY = -Infinity;
-      for (let y = y0; y < y1; y++) {
-        for (let x = x0; x < x1; x++) {
-          const i = (y * width + x) * 4;
-          if (data[i + 3] < 24 || isMatte(x, y)) continue;
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-        }
-      }
-      bounds[row * cols + col] = Number.isFinite(minX)
-        ? { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 }
-        : { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
-    }
-  }
-  kctx.putImageData(image, 0, 0);
-  keyedSkillIcons = { canvas, cols, rows: 2, cellW, cellH, bounds };
+  const frames = [
+    [0, 1],
+    [2, 3],
+    [4, 5],
+    [7, 8, 9],
+    [6, 10, 11]
+  ][row] ?? [frame % 12];
+  drawSprite(ROW.fire, frames[Math.abs(frame) % frames.length], x, y, size, false, angle, alpha, 64, 64);
 }
 
 function drawUpgradeIcon(icon, x, y, size = 74) {
-  buildKeyedSkillIcons();
-  if (!keyedSkillIcons) {
-    drawSkillEffect(icon.row, icon.frame, x, y, size, 0, 1);
-    return;
-  }
-  const { canvas, cols, bounds } = keyedSkillIcons;
-  const source = bounds[(icon.iconRow ?? 1) * cols + icon.frame];
-  const pad = 2;
-  const sx = Math.max(0, source.x - pad);
-  const sy = Math.max(0, source.y - pad);
-  const sw = Math.min(canvas.width - sx, source.w + pad * 2);
-  const sh = Math.min(canvas.height - sy, source.h + pad * 2);
-  const fit = Math.min(size / sw, size / sh);
-  const dw = Math.round(sw * fit);
-  const dh = Math.round(sh * fit);
-  ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(canvas, sx, sy, sw, sh, Math.round(x - dw / 2), Math.round(y - dh / 2), dw, dh);
-  ctx.restore();
+  drawSprite(icon.row, icon.frame, x, y, size, false, icon.angle ?? 0, 1, 64, 64);
 }
 
 function drawEffects() {
@@ -1296,16 +1158,18 @@ function button(x, y, w, h, value) {
 }
 
 function upgradeIcon(name) {
-  if (name.includes("劍") || name.includes("增傷") || name.includes("大符") || name.includes("穿透") || name.includes("符紙")) return { row: 5, frame: 7, iconRow: 1 };
-  if (name.includes("聚魂")) return { row: 5, frame: 4, iconRow: 1 };
-  if (name.includes("護命") || name.includes("回春")) return { row: 5, frame: 5, iconRow: 1 };
-  if (name.includes("火") || name.includes("灼") || name.includes("爆") || name.includes("隕")) return { row: 5, frame: 0, iconRow: 1 };
-  if (name.includes("水") || name.includes("寒") || name.includes("霜") || name.includes("冰")) return { row: 5, frame: 1, iconRow: 1 };
-  if (name.includes("雷") || name.includes("風暴") || name.includes("連鎖")) return { row: 5, frame: 2, iconRow: 1 };
-  if (name.includes("毒") || name.includes("腐")) return { row: 5, frame: 3, iconRow: 1 };
-  if (name.includes("影") || name.includes("斬") || name.includes("虛空")) return { row: 5, frame: 4, iconRow: 1 };
-  if (name.includes("聖") || name.includes("療") || name.includes("盾")) return { row: 5, frame: 5, iconRow: 1 };
-  if (name.includes("風") || name.includes("疾") || name.includes("旋")) return { row: 5, frame: 6, iconRow: 1 };
+  if (name.includes("火") || name.includes("灼") || name.includes("爆") || name.includes("隕")) return { row: ROW.fire, frame: 0 };
+  if (name.includes("水") || name.includes("寒") || name.includes("霜") || name.includes("冰")) return { row: ROW.fire, frame: 2 };
+  if (name.includes("雷") || name.includes("風暴") || name.includes("連鎖")) return { row: ROW.fire, frame: 4 };
+  if (name.includes("毒") || name.includes("腐")) return { row: ROW.fire, frame: 8 };
+  if (name.includes("影") || name.includes("斬") || name.includes("虛空")) return { row: ROW.fire, frame: 6 };
+  if (name.includes("聖") || name.includes("療") || name.includes("盾")) return { row: ROW.fire, frame: 5 };
+  if (name.includes("風") || name.includes("疾") || name.includes("旋")) return { row: ROW.fire, frame: 9 };
+  if (name.includes("劍") || name.includes("增傷")) return { row: ROW.talismanBlade, frame: 5, angle: -0.4 };
+  if (name.includes("大符") || name.includes("穿透") || name.includes("符紙")) return { row: ROW.talismanBlade, frame: 1, angle: -0.18 };
+  if (name.includes("聚魂")) return { row: ROW.soul, frame: 9 };
+  if (name.includes("護命") || name.includes("回春")) return { row: ROW.talismanBlade, frame: 10 };
+  if (name.includes("符火加速")) return { row: ROW.talismanBlade, frame: 2, angle: -0.18 };
   return null;
 }
 
@@ -1444,22 +1308,11 @@ window.render_game_to_text = () => JSON.stringify({
     naturalWidth: sprites.naturalWidth,
     naturalHeight: sprites.naturalHeight
   },
-  skillEffects: {
-    complete: skillEffects.complete,
-    naturalWidth: skillEffects.naturalWidth,
-    naturalHeight: skillEffects.naturalHeight
-  },
-  skillIcons: {
-    complete: skillIcons.complete,
-    naturalWidth: skillIcons.naturalWidth,
-    naturalHeight: skillIcons.naturalHeight,
-    keyed: Boolean(keyedSkillIcons)
-  },
   audio: {
     enabled: Boolean(audioCtx),
     muted: audioMuted
   },
-  note: "All gameplay actors are drawn from survivor-sprites.png."
+  note: "All gameplay sprites, effects, and upgrade icons are drawn from survivor-sprites.png."
 });
 
 window.advanceTime = (ms) => {

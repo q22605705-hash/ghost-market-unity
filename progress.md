@@ -123,3 +123,12 @@ Testing
 - Added WebAudio background music and SFX for shooting, hit impact, player hurt, level-up, and clear. Audio starts after player input and can be toggled with M.
 - Local browser QA screenshots: survivor-new-art-menu.png, survivor-new-art-start.png, survivor-new-art-gameplay.png.
 - Local QA state after 18 seconds: playing, Lv3, 20/75 kills, one ranged enemy, three enemy bullets, two field pickups, audio enabled, no console errors or failed requests.
+
+2026-06-13 full rendered asset audit correction
+
+- User correctly challenged the claim that the game had been fully playtested: previous QA only exercised flow/screenshots and missed that skill-effects.png and gpt-skill-icons-whitematte.png were still in the render path.
+- Removed all runtime references to the old white-matte skill effect/icon assets. The game now draws gameplay sprites, skill effects, projectiles, pickups, and upgrade icons from survivor/assets/survivor-sprites.png only.
+- Fixed normalize-green-cartoon-survivor-sheet.mjs so it preserves all 12 GPT-generated frames per hero row and aligns each frame by visible body center and fixed bottom anchor, instead of rebuilding rows from one source frame.
+- Verified hero animation hashes: idle row unique=12/12 and run row unique=12/12.
+- Rechecked upgrade icons: fire, water, sword, lightning, poison, and holy cards now use distinct frames from the green-screen sprite sheet.
+- Long local playtest reached result/clear: 44.2s, 76/75 kills, Lv5, audio enabled, no console errors, no failed requests. Screenshots: asset-audit-start.png, asset-audit-run.png, asset-audit-upgrade-icons-fixed.png, asset-audit-upgrade-icons-elements.png, asset-audit-long-play.png, run-frame-00.png, run-frame-06.png.
