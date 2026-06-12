@@ -25,6 +25,9 @@ const sprites = new Image();
 sprites.src = "./assets/survivor-sprites.png";
 const skillEffects = new Image();
 skillEffects.src = "./assets/skill-effects.png";
+const skillIcons = new Image();
+skillIcons.src = "./assets/raw/gpt-skill-icons-whitematte.png";
+let keyedSkillIcons = null;
 
 const keys = new Set();
 const pressed = new Set();
@@ -738,6 +741,88 @@ function drawSkillEffect(row, frame, x, y, size = 128, angle = 0, alpha = 1) {
   ctx.restore();
 }
 
+function buildKeyedSkillIcons() {
+  if (!skillIcons.complete || keyedSkillIcons) return;
+  const canvas = document.createElement("canvas");
+  canvas.width = skillIcons.naturalWidth;
+  canvas.height = skillIcons.naturalHeight;
+  const kctx = canvas.getContext("2d", { willReadFrequently: true });
+  kctx.drawImage(skillIcons, 0, 0);
+  const image = kctx.getImageData(0, 0, canvas.width, canvas.height);
+  const { data, width, height } = image;
+  const cols = 8;
+  const rows = 2;
+  const cellW = Math.floor(width / cols);
+  const cellH = Math.floor(height / rows);
+
+  const isMatte = (x, y) => {
+    const i = (y * width + x) * 4;
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+    return a > 0 && r > 180 && g > 180 && b > 180 && Math.max(r, g, b) - Math.min(r, g, b) < 55;
+  };
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x0 = Math.round(col * width / cols);
+      const y0 = Math.round(row * height / rows);
+      const x1 = col === cols - 1 ? width : Math.round((col + 1) * width / cols);
+      const y1 = row === rows - 1 ? height : Math.round((row + 1) * height / rows);
+      const localW = x1 - x0;
+      const localH = y1 - y0;
+      const seen = new Uint8Array(localW * localH);
+      const queue = [];
+      const push = (x, y) => {
+        if (x < x0 || y < y0 || x >= x1 || y >= y1) return;
+        const lx = x - x0;
+        const ly = y - y0;
+        const p = ly * localW + lx;
+        if (seen[p] || !isMatte(x, y)) return;
+        seen[p] = 1;
+        queue.push([x, y]);
+      };
+      for (let x = x0; x < x1; x++) {
+        push(x, y0);
+        push(x, y1 - 1);
+      }
+      for (let y = y0; y < y1; y++) {
+        push(x0, y);
+        push(x1 - 1, y);
+      }
+      for (let q = 0; q < queue.length; q++) {
+        const [x, y] = queue[q];
+        const i = (y * width + x) * 4;
+        data[i + 3] = 0;
+        push(x + 1, y);
+        push(x - 1, y);
+        push(x, y + 1);
+        push(x, y - 1);
+      }
+    }
+  }
+  kctx.putImageData(image, 0, 0);
+  keyedSkillIcons = { canvas, cols, rows: 2, cellW, cellH };
+}
+
+function drawUpgradeIcon(icon, x, y, size = 74) {
+  buildKeyedSkillIcons();
+  if (!keyedSkillIcons) {
+    drawSkillEffect(icon.row, icon.frame, x, y, size, 0, 1);
+    return;
+  }
+  const { canvas, cols } = keyedSkillIcons;
+  const sx = Math.round(icon.frame * canvas.width / cols);
+  const sy = Math.round((icon.iconRow ?? 1) * canvas.height / 2);
+  const sw = Math.round(canvas.width / cols);
+  const sh = Math.round(canvas.height / 2);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(canvas, sx, sy, sw, sh, Math.round(x - size / 2), Math.round(y - size / 2), size, size);
+  ctx.restore();
+}
+
 function drawEffects() {
   for (const fx of state.effects) {
     const s = worldToScreen(fx.x, fx.y);
@@ -906,20 +991,20 @@ function card(x, y, w, h, opt, n) {
     ctx.fill();
     ctx.stroke();
     ctx.restore();
-    drawSkillEffect(icon.row, icon.frame, x + w - 45, y + 45, 74, 0, 1);
+    drawUpgradeIcon(icon, x + w - 45, y + 45, 74);
   }
   text(opt.name, x + 24, y + 82, 23, "#fff4d8");
   wrap(opt.desc, x + 24, y + 122, w - 48, 20, "#b9d0ca");
 }
 
 function upgradeIcon(name) {
-  if (name.includes("火") || name.includes("灼") || name.includes("爆") || name.includes("隕")) return { row: 5, frame: 0 };
-  if (name.includes("水") || name.includes("寒") || name.includes("霜") || name.includes("冰")) return { row: 5, frame: 1 };
-  if (name.includes("雷") || name.includes("風暴") || name.includes("連鎖")) return { row: 5, frame: 2 };
-  if (name.includes("毒") || name.includes("腐")) return { row: 5, frame: 3 };
-  if (name.includes("影") || name.includes("斬") || name.includes("虛空")) return { row: 5, frame: 4 };
-  if (name.includes("聖") || name.includes("療") || name.includes("盾")) return { row: 5, frame: 5 };
-  if (name.includes("風") || name.includes("疾") || name.includes("旋")) return { row: 5, frame: 7 };
+  if (name.includes("火") || name.includes("灼") || name.includes("爆") || name.includes("隕")) return { row: 5, frame: 0, iconRow: 1 };
+  if (name.includes("水") || name.includes("寒") || name.includes("霜") || name.includes("冰")) return { row: 5, frame: 1, iconRow: 1 };
+  if (name.includes("雷") || name.includes("風暴") || name.includes("連鎖")) return { row: 5, frame: 2, iconRow: 1 };
+  if (name.includes("毒") || name.includes("腐")) return { row: 5, frame: 3, iconRow: 1 };
+  if (name.includes("影") || name.includes("斬") || name.includes("虛空")) return { row: 5, frame: 4, iconRow: 1 };
+  if (name.includes("聖") || name.includes("療") || name.includes("盾")) return { row: 5, frame: 5, iconRow: 1 };
+  if (name.includes("風") || name.includes("疾") || name.includes("旋")) return { row: 5, frame: 6, iconRow: 1 };
   return null;
 }
 
@@ -1043,6 +1128,12 @@ window.render_game_to_text = () => JSON.stringify({
     complete: skillEffects.complete,
     naturalWidth: skillEffects.naturalWidth,
     naturalHeight: skillEffects.naturalHeight
+  },
+  skillIcons: {
+    complete: skillIcons.complete,
+    naturalWidth: skillIcons.naturalWidth,
+    naturalHeight: skillIcons.naturalHeight,
+    keyed: Boolean(keyedSkillIcons)
   },
   note: "All gameplay actors are drawn from survivor-sprites.png."
 });
