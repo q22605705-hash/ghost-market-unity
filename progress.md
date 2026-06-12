@@ -90,3 +90,12 @@ Testing
 - Added pure-white residue cleanup for orphan matte pixels after crop/keying.
 - Reran normalization and verified all 96 placements pass. Metadata now records hero sourceAnchor.mode as fixed-cell-feet.
 - Local Playwright run/idle screenshots passed with no console errors or failed requests.
+
+2026-06-13 hero anchor stopgap
+
+- User reported the protagonist still visually drifts during animation. Re-tested locally with consecutive run screenshots before changing the asset again.
+- Measurement showed the generated source strip itself has unstable body/face positions across frames, so merely anchoring the cell or bounding box is not enough.
+- Updated the normalization script to detect hero body-face anchors, then added a conservative locked-stable-feet fallback for hero idle/run rows. The current shipped hero rows are 12-frame rows but each row is locked to one stable source column to eliminate visible drift.
+- Verified by hash that all 12 idle cells match and all 12 run cells match, so sprite-frame playback cannot move the character within the draw anchor.
+- Local Playwright run screenshots and idle screenshot passed with no console errors or failed requests.
+- TODO for future art pass: generate or edit a new run strip from this locked source frame, then accept it only if crop inspection and body/feet center variance pass before use.

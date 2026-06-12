@@ -66,6 +66,12 @@ function isPureWhiteResidue(color) {
   return r > 238 && g > 238 && b > 238 && spread < 26;
 }
 
+function isHeroFacePixel(color) {
+  const [r, g, b, a] = color;
+  if (a <= 0) return false;
+  return r > 158 && g > 112 && b > 70 && r > g && g > b && r - b < 132;
+}
+
 function removeGroundShadows(raw, cellHeight) {
   const index = new Map();
   raw.forEach((p, i) => index.set(`${p.x},${p.y}`, i));
@@ -174,13 +180,30 @@ function cellImage(row, col) {
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
+  let faceX = 0;
+  let faceY = 0;
+  let facePixels = 0;
   for (const p of kept) {
     minX = Math.min(minX, p.sourceX);
     minY = Math.min(minY, p.sourceY);
     maxX = Math.max(maxX, p.sourceX);
     maxY = Math.max(maxY, p.sourceY);
+    if (isHeroFacePixel(p.color)) {
+      faceX += p.sourceX;
+      faceY += p.sourceY;
+      facePixels++;
+    }
   }
-  return { kept, minX, minY, maxX, maxY, width: maxX - minX + 1, height: maxY - minY + 1 };
+  return {
+    kept,
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+    faceAnchor: facePixels >= 120 ? { x: faceX / facePixels, y: faceY / facePixels, pixels: facePixels } : null
+  };
 }
 
 function copyCell(row, col, anchor = "feet") {
@@ -195,8 +218,8 @@ function copyCell(row, col, anchor = "feet") {
   const rawCellY0 = Math.round(row * source.height / rows);
   const rawCellX1 = col === cols - 1 ? source.width : Math.round((col + 1) * source.width / cols);
   const rawCellY1 = row === rows - 1 ? source.height : Math.round((row + 1) * source.height / rows);
-  const useFixedFeetAnchor = row <= 1;
-  const srcAnchorX = useFixedFeetAnchor ? rawCellX0 + (rawCellX1 - rawCellX0) / 2 : src.minX + src.width / 2;
+  const useHeroBodyAnchor = row <= 1 && src.faceAnchor;
+  const srcAnchorX = useHeroBodyAnchor ? src.faceAnchor.x : src.minX + src.width / 2;
   const srcAnchorY = anchor === "feet" ? src.maxY : src.minY + src.height / 2;
   const dstAnchorX = outX + 64;
   const dstAnchorY = outY + (anchor === "feet" ? 112 : 64);
@@ -211,7 +234,12 @@ function copyCell(row, col, anchor = "feet") {
     anchor,
     sourceBounds: { minX: src.minX, minY: src.minY, maxX: src.maxX, maxY: src.maxY, width: src.width, height: src.height },
     scale: Number(scale.toFixed(3)),
-    sourceAnchor: { x: Number((srcAnchorX - rawCellX0).toFixed(2)), y: Number((srcAnchorY - rawCellY0).toFixed(2)), mode: useFixedFeetAnchor ? "fixed-cell-feet" : anchor },
+    sourceAnchor: {
+      x: Number((srcAnchorX - rawCellX0).toFixed(2)),
+      y: Number((srcAnchorY - rawCellY0).toFixed(2)),
+      mode: useHeroBodyAnchor ? "detected-body-feet" : anchor,
+      facePixels: src.faceAnchor?.pixels ?? 0
+    },
     dstAnchor: { x: 64, y: anchor === "feet" ? 112 : 64 },
     opaquePixels: src.kept.length
   };
@@ -224,6 +252,43 @@ for (let row = 0; row < rows; row++) {
     placements.push(copyCell(row, col, anchor));
   }
 }
+
+function snapshotCell(row, col) {
+  const pixels = [];
+  const x0 = col * cell;
+  const y0 = row * cell;
+  for (let y = 0; y < cell; y++) {
+    for (let x = 0; x < cell; x++) {
+      const color = read(out, x0 + x, y0 + y);
+      if (color[3] > 0) pixels.push({ x, y, color });
+    }
+  }
+  return pixels;
+}
+
+function clearCell(row, col) {
+  const x0 = col * cell;
+  const y0 = row * cell;
+  for (let y = 0; y < cell; y++) {
+    for (let x = 0; x < cell; x++) clear(x0 + x, y0 + y);
+  }
+}
+
+function lockHeroRowToStableFrame(row, sourceCol) {
+  const base = snapshotCell(row, sourceCol);
+  for (let col = 0; col < cols; col++) {
+    clearCell(row, col);
+    for (const p of base) write(col * cell + p.x, row * cell + p.y, p.color);
+    const placement = placements[row * cols + col];
+    if (placement) {
+      placement.sourceAnchor = { x: 64, y: 112, mode: "locked-stable-feet", sourceCol };
+      placement.lockedFromColumn = sourceCol;
+    }
+  }
+}
+
+lockHeroRowToStableFrame(0, 10);
+lockHeroRowToStableFrame(1, 10);
 
 for (let row = 0; row <= 4; row++) {
   for (let col = 0; col < cols; col++) {
