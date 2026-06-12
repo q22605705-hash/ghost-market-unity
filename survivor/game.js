@@ -802,8 +802,57 @@ function buildKeyedSkillIcons() {
       }
     }
   }
+  const bounds = [];
+  for (let row = 0; row < rows; row++) {
+    const y0 = Math.round(row * height / rows);
+    const y1 = row === rows - 1 ? height : Math.round((row + 1) * height / rows);
+    const counts = [];
+    for (let x = 0; x < width; x++) {
+      let count = 0;
+      for (let y = y0; y < y1; y++) {
+        const i = (y * width + x) * 4;
+        if (data[i + 3] >= 24 && !isMatte(x, y)) count++;
+      }
+      counts[x] = count;
+    }
+    const groups = [];
+    for (let x = 0; x < width; x++) {
+      if (counts[x] <= 2) continue;
+      const last = groups[groups.length - 1];
+      if (!last || x > last.end + 18) groups.push({ start: x, end: x });
+      else last.end = x;
+    }
+    const usable = groups.length >= cols
+      ? groups.slice(0, cols)
+      : Array.from({ length: cols }, (_, col) => ({
+        start: Math.round(col * width / cols),
+        end: col === cols - 1 ? width - 1 : Math.round((col + 1) * width / cols) - 1
+      }));
+
+    for (let col = 0; col < cols; col++) {
+      const x0 = usable[col].start;
+      const x1 = usable[col].end + 1;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const i = (y * width + x) * 4;
+          if (data[i + 3] < 24 || isMatte(x, y)) continue;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+      bounds[row * cols + col] = Number.isFinite(minX)
+        ? { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 }
+        : { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    }
+  }
   kctx.putImageData(image, 0, 0);
-  keyedSkillIcons = { canvas, cols, rows: 2, cellW, cellH };
+  keyedSkillIcons = { canvas, cols, rows: 2, cellW, cellH, bounds };
 }
 
 function drawUpgradeIcon(icon, x, y, size = 74) {
@@ -812,14 +861,19 @@ function drawUpgradeIcon(icon, x, y, size = 74) {
     drawSkillEffect(icon.row, icon.frame, x, y, size, 0, 1);
     return;
   }
-  const { canvas, cols } = keyedSkillIcons;
-  const sx = Math.round(icon.frame * canvas.width / cols);
-  const sy = Math.round((icon.iconRow ?? 1) * canvas.height / 2);
-  const sw = Math.round(canvas.width / cols);
-  const sh = Math.round(canvas.height / 2);
+  const { canvas, cols, bounds } = keyedSkillIcons;
+  const source = bounds[(icon.iconRow ?? 1) * cols + icon.frame];
+  const pad = 2;
+  const sx = Math.max(0, source.x - pad);
+  const sy = Math.max(0, source.y - pad);
+  const sw = Math.min(canvas.width - sx, source.w + pad * 2);
+  const sh = Math.min(canvas.height - sy, source.h + pad * 2);
+  const fit = Math.min(size / sw, size / sh);
+  const dw = Math.round(sw * fit);
+  const dh = Math.round(sh * fit);
   ctx.save();
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(canvas, sx, sy, sw, sh, Math.round(x - size / 2), Math.round(y - size / 2), size, size);
+  ctx.drawImage(canvas, sx, sy, sw, sh, Math.round(x - dw / 2), Math.round(y - dh / 2), dw, dh);
   ctx.restore();
 }
 
@@ -1143,6 +1197,21 @@ window.advanceTime = (ms) => {
   const steps = Math.max(1, Math.round(ms / (1000 / 60)));
   for (let i = 0; i < steps; i++) update(1 / 60);
   draw();
+};
+
+window.debug_set_upgrade_options = (names) => {
+  const pool = [...elementUnlocks, ...baseUpgradePool, ...Object.values(elementBranches).flat()];
+  if (!state.player) resetGame();
+  if (!names?.length) return pool.map((option) => option.name);
+  state.mode = "level";
+  state.options = names
+    .map((name) => typeof name === "number"
+      ? pool[name]
+      : pool.find((option) => option.name === name || option.name.includes(name) || name.includes(option.name)))
+    .filter(Boolean)
+    .slice(0, 3);
+  draw();
+  return state.options.map((option) => option.name);
 };
 
 sprites.onload = () => {
