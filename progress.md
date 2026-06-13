@@ -142,3 +142,12 @@ Testing
 - Updated soul pickups from a static frame to a 12-frame cycle based on pickup lifetime.
 - Enemy bullets, hero idle/run, and enemy rows already used 12-frame playback and were rechecked.
 - Local QA captured twelve-frame-audit-00.png through twelve-frame-audit-11.png plus twelve-frame-long-clear.png. Long run reached CLEAR at 57s, 75/75 kills, Lv5, fire build, audio enabled, no console errors, no failed requests.
+
+2026-06-13 visual foot-center correction
+
+- User reported that the protagonist art still was not centered on the feet. Rechecked the rendered frames and found the previous quality gate was using bottom contact and bounding-box center, which can be skewed by tail, brush, ribbon, or weapon pixels.
+- Updated scripts/normalize-green-cartoon-survivor-sheet.mjs to detect the hero's visual foot-contact pixels relative to the head/body center, then shift each hero idle/run cell so the foot-contact center lands on the fixed frame anchor.
+- Added a second output correction pass that measures the finalized transparent cells and recenters the detected foot contact, instead of trusting only source crop positions.
+- Reran the green-screen normalization. Final hero metrics: idle footCenterRange 0.91px, run footCenterRange 0.72px, both bottomRange 0, greenPixels 0.
+- Captured foot-center-frame-00.png through foot-center-frame-11.png and inspected representative frames before accepting the asset.
+- Long local Playwright run reached CLEAR at 54.3s, 75/75 kills, Lv5, fire build, audio enabled, no console errors, no failed requests. Screenshot: foot-center-long-clear.png.

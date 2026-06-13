@@ -132,13 +132,68 @@ function cellPixels(row, col) {
   return { pixels, minX, minY, maxX, maxY, width: maxX - minX + 1, height: maxY - minY + 1 };
 }
 
+function luminance([r, g, b]) {
+  return r * 0.2126 + g * 0.7152 + b * 0.0722;
+}
+
+function detectFootAnchorX(src) {
+  const headPixels = src.pixels.filter((p) => {
+    const [r, g, b, a] = p.color;
+    if (a < 32 || p.y > src.minY + 58) return false;
+    const bright = (r + g + b) / 3;
+    return bright > 145 || (g > 120 && b > 105);
+  });
+  const headCenter = headPixels.length >= 24
+    ? headPixels.reduce((sum, p) => sum + p.x, 0) / headPixels.length
+    : src.minX + src.width / 2;
+  const bottomBand = src.pixels.filter((p) => p.y >= src.maxY - 18 && p.y <= src.maxY);
+  const dark = bottomBand.filter((p) => {
+    const [r, g, b, a] = p.color;
+    if (a < 32) return false;
+    if (Math.abs(p.x - headCenter) > 38) return false;
+    const sat = Math.max(r, g, b) - Math.min(r, g, b);
+    return luminance(p.color) < 128 && !(r > 150 && g > 80 && b < 80 && sat > 70);
+  });
+  const centeredBottom = bottomBand.filter((p) => Math.abs(p.x - headCenter) <= 42);
+  const candidates = dark.length >= 8 ? dark : centeredBottom.length ? centeredBottom : bottomBand;
+  if (!candidates.length) return src.minX + src.width / 2;
+
+  const xs = [...new Set(candidates.map((p) => p.x))].sort((a, b) => a - b);
+  const groups = [];
+  for (const x of xs) {
+    const last = groups[groups.length - 1];
+    if (!last || x > last.end + 4) groups.push({ start: x, end: x });
+    else last.end = x;
+  }
+  const bodyCenter = headCenter;
+  const scored = groups.map((g) => {
+    const groupPixels = candidates.filter((p) => p.x >= g.start && p.x <= g.end);
+    const avg = groupPixels.reduce((sum, p) => sum + p.x, 0) / groupPixels.length;
+    const bottomCount = groupPixels.filter((p) => p.y >= src.maxY - 4).length;
+    return {
+      avg,
+      width: g.end - g.start + 1,
+      count: groupPixels.length,
+      score: bottomCount * 3 + groupPixels.length + Math.max(0, 30 - Math.abs(avg - bodyCenter))
+    };
+  }).filter((g) => g.width >= 3 || g.count >= 8);
+  if (!scored.length) return bodyCenter;
+  scored.sort((a, b) => b.score - a.score);
+  const best = scored[0];
+  const nearby = scored
+    .filter((g) => g !== best && Math.abs(g.avg - best.avg) <= 34 && g.score >= best.score * 0.38)
+    .slice(0, 1);
+  const combined = [best, ...nearby];
+  return combined.reduce((sum, g) => sum + g.avg * g.score, 0) / combined.reduce((sum, g) => sum + g.score, 0);
+}
+
 function copyCell(row, col) {
   const src = cellPixels(row, col);
   if (!src) return null;
   const character = row <= 4;
   const dstAnchorX = col * cell + 64;
   const dstAnchorY = row * cell + (character ? 112 : 64);
-  const srcAnchorX = src.minX + src.width / 2;
+  const srcAnchorX = row <= 1 ? detectFootAnchorX(src) : src.minX + src.width / 2;
   const srcAnchorY = character ? src.maxY : src.minY + src.height / 2;
   const maxW = character ? 112 : 116;
   const maxH = character ? 112 : 116;
@@ -163,6 +218,11 @@ function copyCell(row, col) {
       width: src.width,
       height: src.height,
       pixels: src.pixels.length
+    },
+    sourceAnchor: {
+      x: Number(srcAnchorX.toFixed(2)),
+      y: Number(srcAnchorY.toFixed(2)),
+      mode: row <= 1 ? "detected-dark-foot-center" : character ? "bounds-feet" : "center"
     }
   };
 }
@@ -192,29 +252,114 @@ function localBounds(row, col) {
   return { row, col, minX, minY, maxX, maxY, centerX: (minX + maxX) / 2, bottom: maxY, green, whiteEdge };
 }
 
+function outputFootContact(row, col) {
+  const x0 = col * cell;
+  const y0 = row * cell;
+  let minY = Infinity;
+  let maxYForHead = -Infinity;
+  const headXs = [];
+  for (let y = 0; y < cell; y++) {
+    for (let x = 0; x < cell; x++) {
+      const color = read(out, x0 + x, y0 + y);
+      const [r, g, b, a] = color;
+      if (a <= 24) continue;
+      minY = Math.min(minY, y);
+      maxYForHead = Math.max(maxYForHead, y);
+      const bright = (r + g + b) / 3;
+      if (y <= minY + 62 && (bright > 145 || (g > 120 && b > 105))) headXs.push(x);
+    }
+  }
+  const headCenter = headXs.length >= 16
+    ? headXs.reduce((sum, x) => sum + x, 0) / headXs.length
+    : 64;
+  let maxY = -1;
+  for (let y = 0; y < cell; y++) {
+    for (let x = 0; x < cell; x++) {
+      if (read(out, x0 + x, y0 + y)[3] > 24) maxY = Math.max(maxY, y);
+    }
+  }
+  const xs = [];
+  for (let y = Math.max(0, maxY - 18); y <= maxY; y++) {
+    for (let x = 0; x < cell; x++) {
+      const color = read(out, x0 + x, y0 + y);
+      const [r, g, b, a] = color;
+      if (a > 24 && Math.abs(x - headCenter) <= 38 && luminance(color) < 128 && !(r > 150 && g > 80 && b < 80)) xs.push(x);
+    }
+  }
+  const avg = xs.length ? xs.reduce((sum, x) => sum + x, 0) / xs.length : NaN;
+  return { row, col, headCenter: Number(headCenter.toFixed(2)), footCenterX: Number(avg.toFixed(2)), footPixelCount: xs.length };
+}
+
+function shiftCell(row, col, dx) {
+  if (!dx) return;
+  const x0 = col * cell;
+  const y0 = row * cell;
+  const copy = [];
+  for (let y = 0; y < cell; y++) {
+    for (let x = 0; x < cell; x++) copy.push(read(out, x0 + x, y0 + y));
+  }
+  for (let y = 0; y < cell; y++) {
+    for (let x = 0; x < cell; x++) write(x0 + x, y0 + y, [0, 0, 0, 0]);
+  }
+  for (let y = 0; y < cell; y++) {
+    for (let x = 0; x < cell; x++) {
+      const rgba = copy[(y * cell + x)];
+      if (rgba[3] <= 0) continue;
+      write(x0 + x + dx, y0 + y, rgba);
+    }
+  }
+}
+
+function correctHeroFootCenters() {
+  const corrections = [];
+  for (const row of [0, 1]) {
+    for (let col = 0; col < cols; col++) {
+      const foot = outputFootContact(row, col);
+      if (!Number.isFinite(foot.footCenterX) || foot.footPixelCount < 8) {
+        corrections.push({ ...foot, dx: 0, skipped: true });
+        continue;
+      }
+      const dx = Math.round(64 - foot.footCenterX);
+      shiftCell(row, col, dx);
+      corrections.push({ ...foot, dx });
+    }
+  }
+  return corrections;
+}
+
 const placements = [];
 for (let row = 0; row < rows; row++) {
   for (let col = 0; col < cols; col++) placements.push(copyCell(row, col));
 }
 const cleanup = postCleanEdges();
+const footCorrections = [
+  ...correctHeroFootCenters().map((item) => ({ pass: 1, ...item })),
+  ...correctHeroFootCenters().map((item) => ({ pass: 2, ...item }))
+];
 
 const bounds = [];
+const footContacts = [];
 for (let row = 0; row < rows; row++) {
-  for (let col = 0; col < cols; col++) bounds.push(localBounds(row, col));
+  for (let col = 0; col < cols; col++) {
+    bounds.push(localBounds(row, col));
+    if (row <= 1) footContacts.push(outputFootContact(row, col));
+  }
 }
 const heroRows = [0, 1].map((row) => {
   const items = bounds.filter((b) => b.row === row);
+  const feet = footContacts.filter((b) => b.row === row && Number.isFinite(b.footCenterX)).map((b) => b.footCenterX);
   const centers = items.map((b) => b.centerX);
   const bottoms = items.map((b) => b.bottom);
   return {
     row,
     centerRange: Number((Math.max(...centers) - Math.min(...centers)).toFixed(2)),
     bottomRange: Math.max(...bottoms) - Math.min(...bottoms),
+    footCenterRange: Number((Math.max(...feet) - Math.min(...feet)).toFixed(2)),
     greenPixels: items.reduce((sum, b) => sum + b.green, 0),
     whiteEdgePixels: items.reduce((sum, b) => sum + b.whiteEdge, 0)
   };
 });
 
 fs.writeFileSync(outPath, PNG.sync.write(out));
-fs.writeFileSync(qualityPath, JSON.stringify({ source: rawPath, cleanup, placements, rows: heroRows, bounds }, null, 2));
+fs.writeFileSync(qualityPath, JSON.stringify({ source: rawPath, cleanup, footCorrections, placements, rows: heroRows, bounds, footContacts }, null, 2));
 console.log(JSON.stringify({ cleanup, rows: heroRows }, null, 2));
