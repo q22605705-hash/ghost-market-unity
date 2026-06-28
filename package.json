@@ -8,7 +8,12 @@
     "build": "tsc && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "process:assets": "node scripts/process-assets.mjs",
-    "check": "npm run process:assets && npm run build"
+    "check": "npm run process:assets && npm run build",
+    "loop:smoke": "node scripts/playtest-survivor-loop.mjs smoke",
+    "loop:result-damage": "node scripts/playtest-survivor-loop.mjs result-damage",
+    "loop:pause-info": "node scripts/playtest-survivor-loop.mjs pause-info",
+    "loop:combat-readability": "node scripts/playtest-survivor-loop.mjs combat-readability",
+    "loop:upgrade-choice": "node scripts/playtest-survivor-loop.mjs upgrade-choice"
   },
   "dependencies": {
     "phaser": "^3.90.0"

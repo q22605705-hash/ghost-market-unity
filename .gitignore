@@ -15,3 +15,26 @@ UnityProject/Build/
 UnityProject/Builds/
 UnityProject/Logs/
 UnityProject/UserSettings/
+
+# Runtime / local scratch
+$log
+*.pid
+survivor/server*.log
+.browser-profile/
+.firecrawl/
+tmp/
+img-check-result.json
+scripts/tmp-*.js
+scripts/tmp-*.cjs
+
+# Downloaded external skill repos (not part of the game)
+external/
+
+# Generated playtest evidence (regenerable via npm run loop:*)
+survivor/playtest-*.json
+survivor/playtest-settings-client/
+survivor/test-artifacts/
+
+# Large unreferenced intermediate art (runtime only loads skill-vfx-cutouts/normalized/)
+survivor/assets/skill-atlases/
+survivor/assets/skill-vfx-redesign/

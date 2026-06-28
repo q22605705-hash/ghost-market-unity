@@ -1,0 +1,56 @@
+{
+  "idle": {
+    "row": 0,
+    "dir": "C:\\Users\\Administrator\\Documents\\手遊創作-\\tmp\\cat_idle_frames",
+    "sourceWidth": 220,
+    "sourceHeight": 232,
+    "scale": 0.5517241379310345,
+    "offsetX": 3,
+    "offsetY": 0,
+    "pivotSourceX": 116,
+    "pivotSourceY": 221,
+    "anchorX": 67,
+    "anchorY": 121.93,
+    "framesUsed": [
+      "frame_01.png",
+      "frame_02.png",
+      "frame_03.png",
+      "frame_04.png",
+      "frame_05.png",
+      "frame_06.png",
+      "frame_07.png",
+      "frame_08.png",
+      "frame_09.png",
+      "frame_10.png",
+      "frame_11.png",
+      "frame_01.png"
+    ]
+  },
+  "run": {
+    "row": 1,
+    "dir": "C:\\Users\\Administrator\\Documents\\手遊創作-\\tmp\\cat_run_frames",
+    "sourceWidth": 227,
+    "sourceHeight": 226,
+    "scale": 0.5638766519823789,
+    "offsetX": 0,
+    "offsetY": 0,
+    "pivotSourceX": 103,
+    "pivotSourceY": 215,
+    "anchorX": 58.08,
+    "anchorY": 121.23,
+    "framesUsed": [
+      "frame_01.png",
+      "frame_02.png",
+      "frame_03.png",
+      "frame_04.png",
+      "frame_05.png",
+      "frame_06.png",
+      "frame_07.png",
+      "frame_08.png",
+      "frame_09.png",
+      "frame_10.png",
+      "frame_11.png",
+      "frame_01.png"
+    ]
+  }
+}

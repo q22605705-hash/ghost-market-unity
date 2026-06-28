@@ -1,0 +1,24 @@
+{
+  "sourceWidth": 227,
+  "sourceHeight": 226,
+  "scale": 0.5638766519823789,
+  "offsetX": 0,
+  "offsetY": 0,
+  "anchorX": 58.079295154185026,
+  "anchorY": 121.23348017621146,
+  "outputCell": 128,
+  "framesUsed": [
+    "frame_01.png",
+    "frame_02.png",
+    "frame_03.png",
+    "frame_04.png",
+    "frame_05.png",
+    "frame_06.png",
+    "frame_07.png",
+    "frame_08.png",
+    "frame_09.png",
+    "frame_10.png",
+    "frame_11.png",
+    "frame_01.png"
+  ]
+}
