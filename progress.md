@@ -858,3 +858,15 @@ Testing
 - Updated cache version to `upgrade-choice-20260628` (`ASSET_VERSION` in `survivor/game.js` and `?v=` in `survivor/index.html`).
 - Verified green with `node --check survivor/game.js`, `node --check scripts/playtest-survivor-loop.mjs`, `npx.cmd tsc --pretty false`, `npm run loop:upgrade-choice`, and the `npm run loop:smoke` regression. The upgrade-choice screenshot was visually inspected for card/footer text clipping. No console errors or failed requests.
 - New evidence: `survivor/test-artifacts/loop-upgrade-choice.png`, `survivor/test-artifacts/loop-upgrade-choice-resumed.png`, and `survivor/test-artifacts/loop-upgrade-choice-result.json`.
+
+2026-06-28 summoner enemy content pass (enemy depth)
+
+- Added a new elite enemy archetype 召虺 (kind `weaver`) to make late waves demand target prioritization instead of pure crowd clearing.
+- `weaver` is a slow, distance-keeping caster (`GAME_CONFIG.enemyProfiles.weaver`) that periodically telegraphs a conjure (`conjureCast`, ~0.7s windup with a purple aura pulse and the banner 「召虺正在召喚雜兵：先擊破它」) and then summons 2-3 ghoul/skitter minions near itself. Implemented `updateWeaver`, `queueWeaverConjure`, and `resolveWeaverConjure`; wired the weaver branch into `updateEnemies` and gave it the mage-style retreat-when-close movement.
+- Made the weaver a real elite everywhere: `enemyStyle` (purple, 召 mark, mage row), `drawEnemyAura` conjure ring, `awardStrongEnemyLoot` (counts as `eliteKills`, drops moon dust + soul burst), minimap `elites` filter, and the minimap elite colour.
+- Spawn integration: added `weaver` to the late 護陣 stage phase and to the 召喚契約 story chapter pressure, and updated the 護陣 objective/message text to call out summoners.
+- Observability: added `summonerEnemies` and `conjuringEnemies` counts to `render_game_to_text`, and surfaced the conjure windup inside `castingEnemies` (new `conjure` field). Added `debug_force_weaver_conjure` for deterministic QA.
+- Added `loop:enemy-summoner` to the harness and package scripts: spawns a weaver, forces the conjure telegraph, advances time, asserts minions actually arrive and the telegraph clears, then kills the weaver and asserts it registers as an elite takedown.
+- Updated cache version to `summoner-enemy-20260628` (`ASSET_VERSION` in `survivor/game.js` and `?v=` in `survivor/index.html`).
+- Verified green with `node --check survivor/game.js`, `node --check scripts/playtest-survivor-loop.mjs`, `npx.cmd tsc --pretty false`, `npm run loop:enemy-summoner`, plus the `npm run loop:smoke` and `npm run loop:upgrade-choice` regressions. Inspected the telegraph screenshot (conjure banner visible). No console errors or failed requests.
+- New evidence: `survivor/test-artifacts/loop-enemy-summoner-telegraph.png`, `survivor/test-artifacts/loop-enemy-summoner-resolved.png`, and `survivor/test-artifacts/loop-enemy-summoner-result.json`.

@@ -58,6 +58,9 @@ Add the new loop script listed in the selected backlog item before marking that 
 - `npm run loop:upgrade-choice`
   Pre-levels 火系符脈 to Lv.4, forces a 3-card level-up (near-evolution / utility / off-plan), verifies the `levelChoice` recommendation and card metadata, picks the recommended card, confirms the run resumes with the 炎王符 evolution applied, and captures `survivor/test-artifacts/loop-upgrade-choice.png` and `loop-upgrade-choice-resumed.png`.
 
+- `npm run loop:enemy-summoner`
+  Spawns the 召虺 (weaver) elite, forces its conjure telegraph (verifies `conjuringEnemies`/`castingEnemies`), advances time to confirm minions arrive and the telegraph clears, then kills the weaver and confirms it counts as an elite takedown. Captures `survivor/test-artifacts/loop-enemy-summoner-telegraph.png` and `loop-enemy-summoner-resolved.png`.
+
 ## Next Product Queue
 
 1. Agent D - Artifact cleanup and QA hygiene.
@@ -76,6 +79,7 @@ Add the new loop script listed in the selected backlog item before marking that 
 - 2026-06-22: Added `loop:pause-info` and verified Pause > Skills/Stats/Missions screenshots plus JSON state coverage.
 - 2026-06-22: Added `loop:combat-readability` and a deterministic normal-source seed covering符咒、燃燒、毒傷、旋刃、召喚、Boss 法彈受擊提示.
 - 2026-06-28: Agent B done — added `debug_choose_upgrade` and `loop:upgrade-choice`, verifying the level-up recommendation, card metadata, deterministic evolve pick, and run resume. Loop 1 is now complete; next is Agent D artifact cleanup.
+- 2026-06-28: Content-depth pass — added the 召虺 (weaver) summoner elite (telegraphed conjure that spawns minions), wired it into late waves/loot/minimap/readouts, and added `loop:enemy-summoner`. Addresses the "game feels too simple" priority with a prioritization threat.
 
 ## Do Not Do Yet
 

@@ -289,12 +289,57 @@ async function upgradeChoice(page) {
   };
 }
 
+async function enemySummoner(page) {
+  // Spawn a 召虺 (weaver) summoner and confirm it is recognized as a ranged elite.
+  const spawned = JSON.parse(await page.evaluate(() => window.debug_spawn_enemy("weaver", 1, true)));
+  if ((spawned.summonerEnemies || 0) < 1 || (spawned.enemyKinds?.weaver || 0) < 1) {
+    throw new Error(`Weaver did not spawn: ${JSON.stringify({ summonerEnemies: spawned.summonerEnemies, enemyKinds: spawned.enemyKinds })}`);
+  }
+  const baselineEnemies = spawned.enemies;
+
+  // Force the conjure telegraph and confirm it is surfaced for the player to read/react.
+  const charging = JSON.parse(await page.evaluate(() => window.debug_force_weaver_conjure()));
+  if ((charging.conjuringEnemies || 0) < 1) {
+    throw new Error(`Weaver conjure telegraph not active: ${JSON.stringify(charging.conjuringEnemies)}`);
+  }
+  const telegraph = (charging.castingEnemies || []).find((e) => e.kind === "weaver" && e.conjure > 0);
+  if (!telegraph) {
+    throw new Error(`Conjure not surfaced in castingEnemies: ${JSON.stringify(charging.castingEnemies)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-enemy-summoner-telegraph.png"), fullPage: true });
+
+  // Resolve the conjure and confirm minions actually arrive (the threat that rewards prioritization).
+  await page.evaluate(() => window.advanceTime(900));
+  const resolved = JSON.parse(await page.evaluate(() => window.render_game_to_text()));
+  if (resolved.enemies <= baselineEnemies) {
+    throw new Error(`Conjure did not add minions: before ${baselineEnemies}, after ${resolved.enemies}`);
+  }
+  if ((resolved.conjuringEnemies || 0) !== 0) {
+    throw new Error(`Conjure telegraph should clear after resolving: ${JSON.stringify(resolved.conjuringEnemies)}`);
+  }
+
+  // Killing the weaver should register as an elite takedown.
+  const killed = JSON.parse(await page.evaluate(() => window.debug_kill_enemy_kind("weaver")));
+  if ((killed.runRewards?.eliteKills || 0) < 1) {
+    throw new Error(`Weaver kill did not count as an elite takedown: ${JSON.stringify(killed.runRewards)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-enemy-summoner-resolved.png"), fullPage: true });
+  return {
+    scenario: "enemy-summoner",
+    baselineEnemies,
+    afterConjure: resolved.enemies,
+    minionsAdded: resolved.enemies - baselineEnemies,
+    eliteKills: killed.runRewards?.eliteKills ?? 0
+  };
+}
+
 const scenarios = {
   smoke,
   "result-damage": resultDamage,
   "pause-info": pauseInfo,
   "combat-readability": combatReadability,
-  "upgrade-choice": upgradeChoice
+  "upgrade-choice": upgradeChoice,
+  "enemy-summoner": enemySummoner
 };
 
 async function main() {

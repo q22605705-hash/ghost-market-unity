@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "upgrade-choice-20260628";
+const ASSET_VERSION = "summoner-enemy-20260628";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -45,6 +45,7 @@ const GAME_CONFIG = {
     mage: { baseHp: 96, hpPerMinute: 28, baseSpeed: 47, speedPerMinute: 3, baseDamage: 11, radius: 18, xp: 13, shootMin: 1.5, shootMax: 2.4 },
     bomber: { baseHp: 86, hpPerMinute: 24, baseSpeed: 76, speedPerMinute: 4, baseDamage: 10, radius: 20, xp: 10 },
     warden: { baseHp: 180, hpPerMinute: 42, baseSpeed: 41, speedPerMinute: 2, baseDamage: 13, radius: 25, xp: 20 },
+    weaver: { baseHp: 158, hpPerMinute: 34, baseSpeed: 50, speedPerMinute: 2, baseDamage: 9, radius: 21, xp: 18, conjureMin: 4.4, conjureMax: 6.2 },
     brute: { baseHp: 260, hpPerMinute: 60, baseSpeed: 39, speedPerMinute: 3, baseDamage: 18, radius: 29, xp: 32 },
     boss: { baseHp: 1150, hpPerMinute: 185, baseSpeed: 34, speedPerMinute: 2, baseDamage: 28, radius: 42, xp: 80, shootMin: 1.1, shootMax: 1.8 }
   }
@@ -80,9 +81,9 @@ const STAGE_PHASES = [
     id: "warded",
     name: "護陣",
     threshold: 0.82,
-    objective: "優先擊破護衛，否則怪群會變硬",
-    message: "護陣：護衛正在保護怪群，先破陣。",
-    spawn: ["warden", "mage", "skitter", "bomber"]
+    objective: "優先擊破護衛與召虺，否則怪群會變硬變多",
+    message: "護陣：護衛護群、召虺召兵，先破關鍵敵。",
+    spawn: ["warden", "weaver", "mage", "skitter", "bomber"]
   }
 ];
 const MISSION_CHOICES = [
@@ -1304,7 +1305,7 @@ function storyRunFocus(chapter = storyProgressSummary().current) {
       objective: "解鎖第二名召喚伙伴",
       battleNote: "多打菁英與 Boss 取得月塵，回大廳締結新伙伴。",
       preferredChallenge: "elite_breaker",
-      pressure: ["warden", "brute"],
+      pressure: ["warden", "weaver", "brute"],
       event: "elitePressure",
       color: "#c18cff"
     },
@@ -2255,7 +2256,7 @@ function minimapSummary() {
     })),
     pickups: pickupSamples,
     elites: state.enemies
-      .filter((enemy) => ["mage", "warden", "brute", "bomber"].includes(enemy.kind))
+      .filter((enemy) => ["mage", "warden", "weaver", "brute", "bomber"].includes(enemy.kind))
       .slice(0, 8)
       .map((enemy) => ({ ...mapRatioPoint(enemy), kind: enemy.kind })),
     enemyClusters,
@@ -3040,6 +3041,7 @@ function spawnEnemy(kind = "ghoul", overrides = {}) {
     ...overrides,
     maxHp: tuned.hp,
     shoot: (kind === "mage" || kind === "boss") ? rand(template.shootMin, template.shootMax) : undefined,
+    conjure: kind === "weaver" ? rand(template.conjureMin ?? 4.4, template.conjureMax ?? 6.2) : undefined,
     skill: kind === "boss" ? 3.2 : 0,
     hit: 0,
     anim: Math.random() * 12
@@ -3441,6 +3443,7 @@ function killEnemy(e) {
 function awardStrongEnemyLoot(e) {
   const rewardTable = {
     warden: { dust: 1, burst: "goldenShield", label: "護衛瓦解" },
+    weaver: { dust: 2, burst: "voidRift", label: "召虺瓦解" },
     brute: { dust: 2, burst: "soulSlash", label: "巨怪倒下" },
     boss: e.finalBoss
       ? { dust: 28, burst: "divineJudgment", label: "終局首領討伐" }
@@ -4672,7 +4675,7 @@ function updateEnemies(dt) {
     e.weaken = Math.max(0, (e.weaken || 0) - dt);
     e.slow = Math.max(0, (e.slow || 0) - dt);
     const d = norm(p.x - e.x, p.y - e.y);
-    const desired = (e.kind === "mage" || e.kind === "boss") && dist(e, p) < 360 ? -0.25 : 1;
+    const desired = (e.kind === "mage" || e.kind === "boss" || e.kind === "weaver") && dist(e, p) < 360 ? -0.25 : 1;
     const rush = e.kind === "skitter" && dist(e, p) < 220 ? 1.28 : 1;
     const slowFactor = e.slow > 0 ? 0.58 : 1;
     e.x += d.x * e.speed * desired * slowFactor * rush * dt;
@@ -4694,6 +4697,7 @@ function updateEnemies(dt) {
         }
       }
     }
+    if (e.kind === "weaver") updateWeaver(e, dt);
     if (dist(e, p) < e.radius + p.radius && p.invuln <= 0) {
       const contactDamage = e.weaken > 0 ? e.damage * 0.72 : e.damage;
       const shieldBlock = state.stats.holy.shield > 0 ? Math.min(e.damage * 0.35, state.stats.holy.shield * 2) : 0;
@@ -4762,6 +4766,46 @@ function applyWardenAuras() {
       if (Math.hypot(e.x - warden.x, e.y - warden.y) < 150) e.guarded = Math.max(e.guarded || 0, 0.18);
     }
   }
+}
+
+function updateWeaver(e, dt) {
+  if (e.conjureCast) {
+    e.conjureCast.t -= dt;
+    if (e.conjureCast.t <= 0) {
+      resolveWeaverConjure(e);
+      e.conjureCast = null;
+    }
+    return;
+  }
+  e.conjure = (e.conjure ?? rand(4.4, 6.2)) - dt;
+  if (e.conjure <= 0 && dist(e, state.player) < 760) {
+    queueWeaverConjure(e);
+  }
+}
+
+function queueWeaverConjure(e) {
+  const profile = GAME_CONFIG.enemyProfiles.weaver;
+  e.conjureCast = { t: 0.7, max: 0.7 };
+  e.conjure = rand(profile.conjureMin, profile.conjureMax);
+  addEffect("voidRift", e.x, e.y - 16, 150, 0.42);
+  state.message = "召虺正在召喚雜兵：先擊破它";
+}
+
+function resolveWeaverConjure(e) {
+  const minute = state.time / 60;
+  const count = minute > 2.4 ? 3 : 2;
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * TWO_PI + Math.random();
+    const minion = spawnEnemy(Math.random() < 0.5 ? "skitter" : "ghoul", {
+      x: clamp(e.x + Math.cos(a) * 60, 20, WORLD_W - 20),
+      y: clamp(e.y + Math.sin(a) * 60, 20, WORLD_H - 20)
+    });
+    if (minion) {
+      minion.summoned = true;
+      addEffect("soulSlash", minion.x, minion.y - 10, 88, 0.3);
+    }
+  }
+  sfx("shoot");
 }
 
 function queueBossSpecial(e) {
@@ -5297,6 +5341,7 @@ function enemyStyle(enemy) {
   if (kind === "brute") return { row: ROW.brute, size: 124, color: "#ff7b32", alpha: 1, mark: "" };
   if (kind === "warden") return { row: ROW.brute, size: 116, color: "#7dd3fc", alpha: 0.95, mark: "護" };
   if (kind === "mage") return { row: ROW.mage, size: 104, color: "#f472b6", alpha: 1, mark: "" };
+  if (kind === "weaver") return { row: ROW.mage, size: 112, color: "#a78bfa", alpha: 1, mark: "召" };
   if (kind === "bomber") return { row: ROW.ghoul, size: 104, color: "#f59e0b", alpha: 1, mark: "爆" };
   if (kind === "skitter") return { row: ROW.ghoul, size: 82, color: "#fb7185", alpha: 1, mark: "" };
   return { row: ROW.ghoul, size: 96, color: "#f04452", alpha: 1, mark: "" };
@@ -5345,6 +5390,17 @@ function drawEnemyAura(e, s, size) {
     ctx.beginPath();
     ctx.arc(s.x, s.y - size * 0.36 * VIEW_SCALE, 24 * VIEW_SCALE, 0, TWO_PI);
     ctx.fill();
+    ctx.restore();
+  }
+  if (e.kind === "weaver") {
+    ctx.save();
+    const charging = e.conjureCast ? 0.24 : 0;
+    ctx.globalAlpha = 0.18 + charging + Math.sin(performance.now() / 150) * 0.06;
+    ctx.strokeStyle = "#a78bfa";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y - size * 0.4 * VIEW_SCALE, (e.conjureCast ? 34 : 22) * VIEW_SCALE, 0, TWO_PI);
+    ctx.stroke();
     ctx.restore();
   }
 }
@@ -5630,7 +5686,7 @@ function drawCombatRadar() {
     ctx.fill();
   }
   for (const elite of summary.elites) {
-    ctx.fillStyle = elite.kind === "mage" ? "#f472b6" : elite.kind === "warden" ? "#7dd3fc" : elite.kind === "bomber" ? "#f59e0b" : "#ff7b32";
+    ctx.fillStyle = elite.kind === "mage" ? "#f472b6" : elite.kind === "warden" ? "#7dd3fc" : elite.kind === "weaver" ? "#a78bfa" : elite.kind === "bomber" ? "#f59e0b" : "#ff7b32";
     ctx.fillRect(px(elite) - 3, py(elite) - 3, 6, 6);
   }
   for (const hazard of summary.hazards) {
@@ -8036,12 +8092,15 @@ window.render_game_to_text = () => JSON.stringify({
   boss: bossHudSummary(),
   guardedEnemies: state.enemies.filter((enemy) => enemy.guarded > 0).length,
   rangedEnemies: state.enemies.filter((e) => e.kind === "mage").length,
+  summonerEnemies: state.enemies.filter((e) => e.kind === "weaver").length,
+  conjuringEnemies: state.enemies.filter((e) => e.conjureCast).length,
   castingEnemies: state.enemies
-    .filter((e) => e.castT > 0 || e.specialCast)
+    .filter((e) => e.castT > 0 || e.specialCast || e.conjureCast)
     .slice(0, 6)
     .map((e) => ({
       kind: e.finalBoss ? "finalBoss" : e.kind,
       cast: e.castT > 0 ? Number(e.castT.toFixed(2)) : 0,
+      conjure: e.conjureCast ? Number(e.conjureCast.t.toFixed(2)) : 0,
       special: e.specialCast ? { pattern: e.specialCast.pattern, t: Number(e.specialCast.t.toFixed(2)) } : null
     })),
   bullets: state.bullets.length,
@@ -8694,6 +8753,22 @@ window.debug_force_enemy_cast = (kind = "mage", special = false) => {
     if (special && enemy.kind === "boss") queueBossSpecial(enemy);
     else queueEnemyShot(enemy);
   }
+  draw();
+  return window.render_game_to_text();
+};
+
+window.debug_force_weaver_conjure = () => {
+  if (!state.player) resetGame();
+  if (state.mode !== "playing") state.mode = "playing";
+  let weaver = state.enemies.find((item) => item.kind === "weaver");
+  if (!weaver) {
+    weaver = spawnEnemy("weaver");
+    if (weaver) {
+      weaver.x = clamp(state.player.x + 280, 80, WORLD_W - 80);
+      weaver.y = clamp(state.player.y - 24, 80, WORLD_H - 80);
+    }
+  }
+  if (weaver) queueWeaverConjure(weaver);
   draw();
   return window.render_game_to_text();
 };

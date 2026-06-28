@@ -13,7 +13,8 @@
     "loop:result-damage": "node scripts/playtest-survivor-loop.mjs result-damage",
     "loop:pause-info": "node scripts/playtest-survivor-loop.mjs pause-info",
     "loop:combat-readability": "node scripts/playtest-survivor-loop.mjs combat-readability",
-    "loop:upgrade-choice": "node scripts/playtest-survivor-loop.mjs upgrade-choice"
+    "loop:upgrade-choice": "node scripts/playtest-survivor-loop.mjs upgrade-choice",
+    "loop:enemy-summoner": "node scripts/playtest-survivor-loop.mjs enemy-summoner"
   },
   "dependencies": {
     "phaser": "^3.90.0"
