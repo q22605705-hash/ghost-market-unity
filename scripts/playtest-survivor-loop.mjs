@@ -333,13 +333,57 @@ async function enemySummoner(page) {
   };
 }
 
+async function eliteEnemies(page) {
+  // Mirror Lantern: forces a mirrored shot that fires from an offset marker, not the enemy itself.
+  const cast = JSON.parse(await page.evaluate(() => window.debug_force_mirror_shot()));
+  const lanternCast = (cast.castingEnemies || []).find((e) => e.kind === "mirror_lantern" && e.mirror > 0);
+  if (!lanternCast) {
+    throw new Error(`Mirror lantern telegraph not surfaced: ${JSON.stringify(cast.castingEnemies)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-elite-mirror-telegraph.png"), fullPage: true });
+  const bulletsBefore = cast.enemyBullets;
+  await page.evaluate(() => window.advanceTime(650));
+  const fired = JSON.parse(await page.evaluate(() => window.render_game_to_text()));
+  if (fired.enemyBullets <= bulletsBefore) {
+    throw new Error(`Mirror shot did not spawn a projectile: before ${bulletsBefore}, after ${fired.enemyBullets}`);
+  }
+
+  // Talisman Binder: places armed seal traps that slow the player on contact (no hard stun).
+  const sealed = JSON.parse(await page.evaluate(() => window.debug_force_bind_seals()));
+  if ((sealed.bindSeals || 0) < 2) {
+    throw new Error(`Binder did not place seal traps: ${JSON.stringify(sealed.bindSeals)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-elite-bind-seals.png"), fullPage: true });
+
+  // Move the player onto a seal, wait past the arm time, and confirm the slow applies via a readable source.
+  await page.evaluate(() => window.debug_move_player_to_bind_seal());
+  await page.evaluate(() => window.advanceTime(700));
+  const moveState = JSON.parse(await page.evaluate(() => window.render_game_to_text()));
+  if ((moveState.playerSlowed || 0) <= 0) {
+    throw new Error(`Bind seal did not slow the player: ${JSON.stringify({ playerSlowed: moveState.playerSlowed, threat: moveState.threat })}`);
+  }
+  const hitSource = moveState.threat?.lastHit?.source || "";
+  if (!/縛符/.test(hitSource)) {
+    throw new Error(`Bind seal hit source not readable: ${JSON.stringify(moveState.threat)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-elite-bind-slow.png"), fullPage: true });
+  return {
+    scenario: "elite-enemies",
+    mirrorBulletsAdded: fired.enemyBullets - bulletsBefore,
+    bindSeals: sealed.bindSeals,
+    playerSlowed: moveState.playerSlowed,
+    bindHitSource: hitSource
+  };
+}
+
 const scenarios = {
   smoke,
   "result-damage": resultDamage,
   "pause-info": pauseInfo,
   "combat-readability": combatReadability,
   "upgrade-choice": upgradeChoice,
-  "enemy-summoner": enemySummoner
+  "enemy-summoner": enemySummoner,
+  "elite-enemies": eliteEnemies
 };
 
 async function main() {

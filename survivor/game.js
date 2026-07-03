@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "weaver-art-20260703";
+const ASSET_VERSION = "elite-enemies-20260703";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -46,6 +46,8 @@ const GAME_CONFIG = {
     bomber: { baseHp: 86, hpPerMinute: 24, baseSpeed: 76, speedPerMinute: 4, baseDamage: 10, radius: 20, xp: 10 },
     warden: { baseHp: 180, hpPerMinute: 42, baseSpeed: 41, speedPerMinute: 2, baseDamage: 13, radius: 25, xp: 20 },
     weaver: { baseHp: 158, hpPerMinute: 34, baseSpeed: 50, speedPerMinute: 2, baseDamage: 9, radius: 21, xp: 18, conjureMin: 4.4, conjureMax: 6.2 },
+    mirror_lantern: { baseHp: 92, hpPerMinute: 19, baseSpeed: 56, speedPerMinute: 2.2, baseDamage: 15, radius: 20, xp: 7, mirrorMin: 2.8, mirrorMax: 3.6 },
+    talisman_binder: { baseHp: 128, hpPerMinute: 23, baseSpeed: 44, speedPerMinute: 1.7, baseDamage: 12, radius: 22, xp: 8, bindMin: 4.2, bindMax: 5.0 },
     brute: { baseHp: 260, hpPerMinute: 60, baseSpeed: 39, speedPerMinute: 3, baseDamage: 18, radius: 29, xp: 32 },
     boss: { baseHp: 1150, hpPerMinute: 185, baseSpeed: 34, speedPerMinute: 2, baseDamage: 28, radius: 42, xp: 80, shootMin: 1.1, shootMax: 1.8 }
   }
@@ -73,17 +75,17 @@ const STAGE_PHASES = [
     id: "rupture",
     name: "裂潮",
     threshold: 0.62,
-    objective: "爆靈會留下危險區，擊殺後立刻換位",
-    message: "裂潮：爆靈出現，擊殺後離開爆裂區。",
-    spawn: ["bomber", "bomber", "brute"]
+    objective: "爆靈會留下危險區，擊殺後立刻換位；鏡燈使會折射符彈",
+    message: "裂潮：爆靈與鏡燈使出現，注意斜向彈道。",
+    spawn: ["bomber", "bomber", "mirror_lantern", "brute"]
   },
   {
     id: "warded",
     name: "護陣",
     threshold: 0.82,
-    objective: "優先擊破護衛與召虺，否則怪群會變硬變多",
-    message: "護陣：護衛護群、召虺召兵，先破關鍵敵。",
-    spawn: ["warden", "weaver", "mage", "skitter", "bomber"]
+    objective: "優先擊破護衛與召虺，並閃避縛符師的減速符陣",
+    message: "護陣：護衛護群、召虺召兵、縛符師佈陣，先破關鍵敵。",
+    spawn: ["warden", "weaver", "talisman_binder", "mage", "skitter"]
   }
 ];
 const MISSION_CHOICES = [
@@ -2260,7 +2262,7 @@ function minimapSummary() {
     })),
     pickups: pickupSamples,
     elites: state.enemies
-      .filter((enemy) => ["mage", "warden", "weaver", "brute", "bomber"].includes(enemy.kind))
+      .filter((enemy) => ["mage", "warden", "weaver", "mirror_lantern", "talisman_binder", "brute", "bomber"].includes(enemy.kind))
       .slice(0, 8)
       .map((enemy) => ({ ...mapRatioPoint(enemy), kind: enemy.kind })),
     enemyClusters,
@@ -3046,6 +3048,8 @@ function spawnEnemy(kind = "ghoul", overrides = {}) {
     maxHp: tuned.hp,
     shoot: (kind === "mage" || kind === "boss") ? rand(template.shootMin, template.shootMax) : undefined,
     conjure: kind === "weaver" ? rand(template.conjureMin ?? 4.4, template.conjureMax ?? 6.2) : undefined,
+    mirror: kind === "mirror_lantern" ? rand(template.mirrorMin ?? 2.8, template.mirrorMax ?? 3.6) : undefined,
+    bind: kind === "talisman_binder" ? rand(template.bindMin ?? 4.2, template.bindMax ?? 5.0) : undefined,
     skill: kind === "boss" ? 3.2 : 0,
     hit: 0,
     anim: Math.random() * 12
@@ -3448,6 +3452,8 @@ function awardStrongEnemyLoot(e) {
   const rewardTable = {
     warden: { dust: 1, burst: "goldenShield", label: "護衛瓦解" },
     weaver: { dust: 2, burst: "voidRift", label: "召虺瓦解" },
+    mirror_lantern: { dust: 1, burst: "divineJudgment", label: "鏡燈使破碎" },
+    talisman_binder: { dust: 1, burst: "goldenShield", label: "縛符師解陣" },
     brute: { dust: 2, burst: "soulSlash", label: "巨怪倒下" },
     boss: e.finalBoss
       ? { dust: 28, burst: "divineJudgment", label: "終局首領討伐" }
@@ -4220,8 +4226,10 @@ function updatePlayer(dt) {
   const rawY = keyY || touchY;
   const moving = Math.hypot(rawX, rawY) > 0.08;
   const dir = moving ? norm(rawX, rawY) : { x: 0, y: 0 };
-  p.vx = dir.x * state.stats.speed;
-  p.vy = dir.y * state.stats.speed;
+  p.slowT = Math.max(0, (p.slowT || 0) - dt);
+  const slowFactor = p.slowT > 0 ? 0.58 : 1;
+  p.vx = dir.x * state.stats.speed * slowFactor;
+  p.vy = dir.y * state.stats.speed * slowFactor;
   const oldX = p.x;
   const oldY = p.y;
   p.x += p.vx * dt;
@@ -4679,7 +4687,7 @@ function updateEnemies(dt) {
     e.weaken = Math.max(0, (e.weaken || 0) - dt);
     e.slow = Math.max(0, (e.slow || 0) - dt);
     const d = norm(p.x - e.x, p.y - e.y);
-    const desired = (e.kind === "mage" || e.kind === "boss" || e.kind === "weaver") && dist(e, p) < 360 ? -0.25 : 1;
+    const desired = (e.kind === "mage" || e.kind === "boss" || e.kind === "weaver" || e.kind === "mirror_lantern" || e.kind === "talisman_binder") && dist(e, p) < 360 ? -0.25 : 1;
     const rush = e.kind === "skitter" && dist(e, p) < 220 ? 1.28 : 1;
     const slowFactor = e.slow > 0 ? 0.58 : 1;
     e.x += d.x * e.speed * desired * slowFactor * rush * dt;
@@ -4702,6 +4710,8 @@ function updateEnemies(dt) {
       }
     }
     if (e.kind === "weaver") updateWeaver(e, dt);
+    if (e.kind === "mirror_lantern") updateMirrorLantern(e, dt);
+    if (e.kind === "talisman_binder") updateTalismanBinder(e, dt);
     if (dist(e, p) < e.radius + p.radius && p.invuln <= 0) {
       const contactDamage = e.weaken > 0 ? e.damage * 0.72 : e.damage;
       const shieldBlock = state.stats.holy.shield > 0 ? Math.min(e.damage * 0.35, state.stats.holy.shield * 2) : 0;
@@ -4812,6 +4822,93 @@ function resolveWeaverConjure(e) {
   sfx("shoot");
 }
 
+function updateMirrorLantern(e, dt) {
+  if (e.mirrorCast) {
+    e.mirrorCast.t -= dt;
+    if (e.mirrorCast.t <= 0) {
+      resolveMirrorShot(e);
+      e.mirrorCast = null;
+    }
+    return;
+  }
+  e.mirror = (e.mirror ?? rand(2.8, 3.6)) - dt;
+  if (e.mirror <= 0 && dist(e, state.player) < 640) queueMirrorShot(e);
+}
+
+function queueMirrorShot(e) {
+  const p = state.player;
+  const profile = GAME_CONFIG.enemyProfiles.mirror_lantern;
+  const aim = norm(p.x - e.x, p.y - e.y);
+  const side = Math.random() < 0.5 ? 1 : -1;
+  const off = 150;
+  e.mirrorCast = {
+    t: 0.55,
+    max: 0.55,
+    ox: clamp(p.x - aim.y * side * off, 20, WORLD_W - 20),
+    oy: clamp(p.y + aim.x * side * off, 20, WORLD_H - 20)
+  };
+  e.mirror = rand(profile.mirrorMin, profile.mirrorMax);
+  state.message = "鏡燈使折射符彈：斜向走位閃避";
+}
+
+function resolveMirrorShot(e) {
+  const p = state.player;
+  const c = e.mirrorCast;
+  const split = e.hp / e.maxHp < 0.45;
+  const base = Math.atan2(p.y - c.oy, p.x - c.ox);
+  const spread = split ? [-0.16, 0.16] : [0];
+  for (const offset of spread) {
+    const angle = base + offset;
+    state.enemyBullets.push({
+      x: c.ox,
+      y: c.oy,
+      vx: Math.cos(angle) * 300,
+      vy: Math.sin(angle) * 300,
+      angle,
+      r: 9,
+      life: 4,
+      damage: split ? 10 : 15,
+      kind: "mage",
+      source: "鏡燈法彈",
+      anim: 0
+    });
+  }
+  addEffect("divineJudgment", c.ox, c.oy - 8, 120, 0.3);
+  sfx("shoot");
+}
+
+function updateTalismanBinder(e, dt) {
+  const profile = GAME_CONFIG.enemyProfiles.talisman_binder;
+  e.bind = (e.bind ?? rand(4.2, 5)) - dt;
+  if (e.bind <= 0 && dist(e, state.player) < 680) {
+    placeBindSeals(e);
+    e.bind = rand(profile.bindMin, profile.bindMax);
+  }
+}
+
+function placeBindSeals(e) {
+  const p = state.player;
+  const vel = norm(p.vx || 0.0001, p.vy || 0.0001);
+  const perp = { x: -vel.y, y: vel.x };
+  for (let i = 0; i < 2; i++) {
+    const ahead = 70 + i * 90;
+    const jitter = (i === 0 ? -1 : 1) * 46;
+    state.hazards.push({
+      kind: "bindSeal",
+      owner: "enemy",
+      x: clamp(p.x + vel.x * ahead + perp.x * jitter, 30, WORLD_W - 30),
+      y: clamp(p.y + vel.y * ahead + perp.y * jitter, 30, WORLD_H - 30),
+      r: 46,
+      life: 3.55,
+      warn: 0.55,
+      tick: 0,
+      damage: 6,
+      slow: 0.9
+    });
+  }
+  state.message = "縛符師佈下符陣：別踩到減速符";
+}
+
 function queueBossSpecial(e) {
   const pattern = Math.random() < 0.55 ? "radial" : "seal";
   e.specialCast = { pattern, t: pattern === "radial" ? 0.78 : 0.52, max: pattern === "radial" ? 0.78 : 0.52 };
@@ -4886,7 +4983,7 @@ function updateBullets(dt) {
     if (Math.hypot(state.player.x - b.x, state.player.y - b.y) < state.player.radius + b.r && state.player.invuln <= 0) {
       state.player.hp -= b.damage;
       state.player.invuln = 0.55 + state.stats.hurtGrace;
-      triggerPlayerHurtFeedback(b.damage, b.kind === "boss" ? "Boss 彈幕" : "遠程彈");
+      triggerPlayerHurtFeedback(b.damage, b.source || (b.kind === "boss" ? "Boss 彈幕" : "遠程彈"));
       b.life = -1;
     }
     if (b.life <= 0) state.enemyBullets.splice(state.enemyBullets.indexOf(b), 1);
@@ -4936,7 +5033,8 @@ function updateHazards(dt) {
       p.invuln = 0.38 + state.stats.hurtGrace;
       h.tick = 0.75;
       state.freeze = 0.05;
-      triggerPlayerHurtFeedback(h.damage, h.kind === "bossSeal" ? "怨月封印" : "危險區");
+      if (h.slow) p.slowT = Math.max(p.slowT || 0, h.slow);
+      triggerPlayerHurtFeedback(h.damage, h.kind === "bossSeal" ? "怨月封印" : h.kind === "bindSeal" ? "縛符陷阱" : "危險區");
     }
   }
   if (state.currentEvent) {
@@ -5308,6 +5406,32 @@ function drawEnemies() {
 
 function drawEnemyTelegraphs() {
   for (const e of state.enemies) {
+    if (e.mirrorCast) {
+      const progress = clamp(1 - e.mirrorCast.t / Math.max(0.01, e.mirrorCast.max), 0, 1);
+      const es = worldToScreen(e.x, e.y);
+      const os = worldToScreen(e.mirrorCast.ox, e.mirrorCast.oy);
+      const ps = worldToScreen(state.player.x, state.player.y);
+      ctx.save();
+      ctx.globalAlpha = 0.35 + progress * 0.4;
+      ctx.strokeStyle = "#5eead4";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(es.x, es.y - 20 * VIEW_SCALE);
+      ctx.lineTo(os.x, os.y);
+      ctx.stroke();
+      ctx.strokeStyle = "#fbbf24";
+      ctx.lineWidth = 2 + progress * 2;
+      ctx.beginPath();
+      ctx.moveTo(os.x, os.y);
+      ctx.lineTo(ps.x, ps.y);
+      ctx.stroke();
+      ctx.fillStyle = "#fbbf24";
+      ctx.globalAlpha = 0.5 + progress * 0.4;
+      ctx.beginPath();
+      ctx.arc(os.x, os.y, (6 + progress * 5) * VIEW_SCALE, 0, TWO_PI);
+      ctx.fill();
+      ctx.restore();
+    }
     if (!(e.castT > 0 || e.specialCast)) continue;
     const s = worldToScreen(e.x, e.y);
     ctx.save();
@@ -5369,6 +5493,8 @@ function enemyStyle(enemy) {
   if (kind === "warden") return { row: ROW.brute, size: 116, color: "#7dd3fc", alpha: 0.95, mark: "護" };
   if (kind === "mage") return { row: ROW.mage, size: 104, color: "#f472b6", alpha: 1, mark: "" };
   if (kind === "weaver") return { row: ROW.mage, size: 120, color: "#a78bfa", alpha: 1, mark: "召" };
+  if (kind === "mirror_lantern") return { row: ROW.mage, size: 106, color: "#fbbf24", alpha: 1, mark: "鏡" };
+  if (kind === "talisman_binder") return { row: ROW.mage, size: 110, color: "#c4b5fd", alpha: 1, mark: "縛" };
   if (kind === "bomber") return { row: ROW.ghoul, size: 104, color: "#f59e0b", alpha: 1, mark: "爆" };
   if (kind === "skitter") return { row: ROW.ghoul, size: 82, color: "#fb7185", alpha: 1, mark: "" };
   return { row: ROW.ghoul, size: 96, color: "#f04452", alpha: 1, mark: "" };
@@ -5470,8 +5596,8 @@ function drawHazards() {
     const r = h.r * VIEW_SCALE;
     ctx.save();
     ctx.globalAlpha = h.warn > 0 ? 0.28 + Math.sin(performance.now() / 80) * 0.08 : 0.42;
-    ctx.fillStyle = h.owner === "player" ? "rgba(95, 239, 56, 0.24)" : h.kind === "bossSeal" ? "rgba(178, 92, 255, 0.34)" : "rgba(217, 70, 239, 0.28)";
-    ctx.strokeStyle = h.owner === "player" ? "#87ef38" : h.warn > 0 ? "#ffe8ad" : "#d946ef";
+    ctx.fillStyle = h.owner === "player" ? "rgba(95, 239, 56, 0.24)" : h.kind === "bossSeal" ? "rgba(178, 92, 255, 0.34)" : h.kind === "bindSeal" ? "rgba(196, 181, 253, 0.26)" : "rgba(217, 70, 239, 0.28)";
+    ctx.strokeStyle = h.owner === "player" ? "#87ef38" : h.warn > 0 ? "#ffe8ad" : h.kind === "bindSeal" ? "#c4b5fd" : "#d946ef";
     ctx.lineWidth = h.warn > 0 ? 3 : 2;
     ctx.beginPath();
     ctx.arc(s.x, s.y, r, 0, TWO_PI);
@@ -5713,7 +5839,7 @@ function drawCombatRadar() {
     ctx.fill();
   }
   for (const elite of summary.elites) {
-    ctx.fillStyle = elite.kind === "mage" ? "#f472b6" : elite.kind === "warden" ? "#7dd3fc" : elite.kind === "weaver" ? "#a78bfa" : elite.kind === "bomber" ? "#f59e0b" : "#ff7b32";
+    ctx.fillStyle = elite.kind === "mage" ? "#f472b6" : elite.kind === "warden" ? "#7dd3fc" : elite.kind === "weaver" ? "#a78bfa" : elite.kind === "mirror_lantern" ? "#fbbf24" : elite.kind === "talisman_binder" ? "#c4b5fd" : elite.kind === "bomber" ? "#f59e0b" : "#ff7b32";
     ctx.fillRect(px(elite) - 3, py(elite) - 3, 6, 6);
   }
   for (const hazard of summary.hazards) {
@@ -8121,13 +8247,16 @@ window.render_game_to_text = () => JSON.stringify({
   rangedEnemies: state.enemies.filter((e) => e.kind === "mage").length,
   summonerEnemies: state.enemies.filter((e) => e.kind === "weaver").length,
   conjuringEnemies: state.enemies.filter((e) => e.conjureCast).length,
+  bindSeals: state.hazards.filter((h) => h.kind === "bindSeal").length,
+  playerSlowed: state.player ? Number(((state.player.slowT || 0)).toFixed(2)) : 0,
   castingEnemies: state.enemies
-    .filter((e) => e.castT > 0 || e.specialCast || e.conjureCast)
+    .filter((e) => e.castT > 0 || e.specialCast || e.conjureCast || e.mirrorCast)
     .slice(0, 6)
     .map((e) => ({
       kind: e.finalBoss ? "finalBoss" : e.kind,
       cast: e.castT > 0 ? Number(e.castT.toFixed(2)) : 0,
       conjure: e.conjureCast ? Number(e.conjureCast.t.toFixed(2)) : 0,
+      mirror: e.mirrorCast ? Number(e.mirrorCast.t.toFixed(2)) : 0,
       special: e.specialCast ? { pattern: e.specialCast.pattern, t: Number(e.specialCast.t.toFixed(2)) } : null
     })),
   bullets: state.bullets.length,
@@ -8800,10 +8929,54 @@ window.debug_force_weaver_conjure = () => {
   return window.render_game_to_text();
 };
 
+window.debug_force_mirror_shot = () => {
+  if (!state.player) resetGame();
+  if (state.mode !== "playing") state.mode = "playing";
+  let lantern = state.enemies.find((item) => item.kind === "mirror_lantern");
+  if (!lantern) {
+    lantern = spawnEnemy("mirror_lantern");
+    if (lantern) {
+      lantern.x = clamp(state.player.x + 300, 80, WORLD_W - 80);
+      lantern.y = clamp(state.player.y - 24, 80, WORLD_H - 80);
+    }
+  }
+  if (lantern) queueMirrorShot(lantern);
+  draw();
+  return window.render_game_to_text();
+};
+
+window.debug_force_bind_seals = () => {
+  if (!state.player) resetGame();
+  if (state.mode !== "playing") state.mode = "playing";
+  let binder = state.enemies.find((item) => item.kind === "talisman_binder");
+  if (!binder) {
+    binder = spawnEnemy("talisman_binder");
+    if (binder) {
+      binder.x = clamp(state.player.x + 260, 80, WORLD_W - 80);
+      binder.y = clamp(state.player.y - 24, 80, WORLD_H - 80);
+    }
+  }
+  if (binder) placeBindSeals(binder);
+  draw();
+  return window.render_game_to_text();
+};
+
 window.debug_kill_enemy_kind = (kind = "bomber") => {
   if (!state.player) resetGame();
   const enemy = state.enemies.find((item) => item.kind === kind);
   if (enemy) damageEnemy(enemy, enemy.hp + 999, 0, `Debug 擊殺：${kind}`);
+  draw();
+  return window.render_game_to_text();
+};
+
+window.debug_move_player_to_bind_seal = () => {
+  if (!state.player) return null;
+  const seal = state.hazards.find((h) => h.kind === "bindSeal");
+  if (seal) {
+    state.player.x = seal.x;
+    state.player.y = seal.y;
+    state.player.invuln = 0;
+  }
   draw();
   return window.render_game_to_text();
 };

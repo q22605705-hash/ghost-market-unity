@@ -879,3 +879,15 @@ Testing
 - Updated cache version to `weaver-art-20260703` (`ASSET_VERSION` + `index.html`).
 - Verified with `node --check survivor/game.js`, `npx.cmd tsc --pretty false`, `npm run loop:enemy-summoner`, and `npm run loop:smoke`. Telegraph screenshot confirms the golden conjure frame renders in-game with no console errors or failed requests.
 - This is the first full Claude×Codex art-pipeline round trip (Codex generated the art, Claude cut it out and wired it in). REQ-001 marked done in `collab/TO_CODEX.md` / `collab/FROM_CODEX.md`.
+
+2026-07-03 two elite enemies from Codex specs (Codex handoff REQ-002)
+
+- Implemented both elites from `collab/REQ-002-elite-enemy-spec.md` (content-only specs authored by Codex; Claude wrote all runtime code).
+- `mirror_lantern` / 鏡燈使: retreating ranged elite. Telegraphs an offset "mirror" marker beside the player (teal line from lantern + amber line marker->player), then fires the projectile FROM the marker so the player must dodge perpendicular, not just kite backward. Splits into two weaker bolts below 45% HP. Hit source `鏡燈法彈` (enemy bullets now carry an optional `source` label). Spawns in the 裂潮 stage phase.
+- `talisman_binder` / 縛符師: places two `bindSeal` hazards near the player's projected path (0.55s arm, 3.0s active) that deal small damage and apply a 0.9s ~42% slow on contact with no hard stun. Added a player-slow system (`p.slowT` scales movement in `updatePlayer`). Hit source `縛符陷阱`. Spawns in the 護陣 stage phase.
+- Both are treated as elites: retreat-when-close movement, `awardStrongEnemyLoot` entries, minimap elite filter+colour, `enemyStyle` marks (鏡/縛). Added observability (`bindSeals`, `playerSlowed`, `castingEnemies.mirror`) and debug hooks (`debug_force_mirror_shot`, `debug_force_bind_seals`, `debug_move_player_to_bind_seal`).
+- Added `loop:elite-enemies`: forces the mirror shot and asserts a projectile spawns from the offset marker; forces bind seals, moves the player onto one, and asserts the player is slowed with a readable `縛符陷阱` hit source.
+- Updated cache version to `elite-enemies-20260703`.
+- Verified with `node --check` (game.js + harness), `npx.cmd tsc --pretty false`, `npm run loop:elite-enemies`, and the `loop:enemy-summoner` + `loop:smoke` regressions. Mirror telegraph screenshot inspected. No console errors or failed requests.
+- Follow-up queued as REQ-003: both elites still reuse a tinted mage sprite; bespoke art is the next Codex batch.
+- New evidence: `survivor/test-artifacts/loop-elite-mirror-telegraph.png`, `loop-elite-bind-seals.png`, `loop-elite-bind-slow.png`, `loop-elite-enemies-result.json`.

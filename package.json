@@ -14,7 +14,8 @@
     "loop:pause-info": "node scripts/playtest-survivor-loop.mjs pause-info",
     "loop:combat-readability": "node scripts/playtest-survivor-loop.mjs combat-readability",
     "loop:upgrade-choice": "node scripts/playtest-survivor-loop.mjs upgrade-choice",
-    "loop:enemy-summoner": "node scripts/playtest-survivor-loop.mjs enemy-summoner"
+    "loop:enemy-summoner": "node scripts/playtest-survivor-loop.mjs enemy-summoner",
+    "loop:elite-enemies": "node scripts/playtest-survivor-loop.mjs elite-enemies"
   },
   "dependencies": {
     "phaser": "^3.90.0"

@@ -45,7 +45,14 @@ Claude integrated it: added `scripts/normalize-weaver-sheet.mjs` (green-key + 18
 - Anchor intent: bottom-center for grounded frames
 - Handoff: Claude should crop/normalize, remove green matte, verify 48 placements, then integrate into runtime art/metadata. Codex did not edit `survivor/game.js`, scripts, or package files.
 
-## SPEC-REQ-002 - Elite enemy content specs    status: ready
+## SPEC-REQ-002 - Elite enemy content specs    status: done (Claude 2026-07-03)
+
+Claude implemented both elites from `collab/REQ-002-elite-enemy-spec.md`:
+- `mirror_lantern` / 鏡燈使: retreating ranged elite; telegraphs an offset "mirror" marker beside the player then fires from it (teal+amber telegraph), splits into two weaker bolts below 45% HP, hit source `鏡燈法彈`. Spawns in the 裂潮 phase.
+- `talisman_binder` / 縛符師: places two armed seal traps (0.55s arm, 3s active) that deal small damage + 0.9s 42% slow on contact (no stun), hit source `縛符陣阱`→`縛符陷阱`. Spawns in the 護陣 phase. Added a player-slow system (`p.slowT`).
+Both count as elite kills, appear on the minimap, and expose `bindSeals`/`playerSlowed`/`castingEnemies.mirror` in `render_game_to_text`. Verified with `npm run loop:elite-enemies`. **Follow-up:** both still reuse a tinted mage sprite — bespoke art would be a good next Codex batch (see TO_CODEX REQ-003).
+
+
 
 - Request: REQ-002
 - File: `collab/REQ-002-elite-enemy-spec.md`

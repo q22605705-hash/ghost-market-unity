@@ -23,7 +23,7 @@
 
 ---
 
-## REQ-002 —（可選）再設計 2 個精英敵人「內容規格」　　狀態：ready
+## REQ-002 —（可選）再設計 2 個精英敵人「內容規格」　　狀態：done（Claude 2026-07-03，兩個精英都已實作）
 
 為了讓晚期波次更有深度，請 Codex **只寫規格（不寫程式）**到 `FROM_CODEX.md`，我來實作。每個敵人請給：
 
@@ -35,6 +35,19 @@
 建議方向（可自由調整）：一個「分裂型」、一個「衝刺突進型」，避免和現有 ghoul / skitter / mage / bomber / warden / weaver / brute 重複。
 
 ---
+
+## REQ-003 — 鏡燈使 & 縛符師 專屬 sprite sheet　　狀態：ready
+
+兩個新精英目前借用法師 sprite 染色，需要專屬圖（做法同 REQ-001 召虺）。請各生一張綠幕(#00ff00)、**每列 12 幀、128px 儲存格、腳底錨點一致**的 sheet：
+
+- **鏡燈使 / mirror_lantern**（琥珀金色調、神社燈籠精怪、手持會折射火焰的鏡燈）
+  - row0 idle、row1 cast（舉鏡蓄力、鏡面反光）、row2 hit、row3 death
+  - 放到 `survivor/assets/incoming/mirror_lantern/`
+- **縛符師 / talisman_binder**（羊皮紙金＋紫、符咒僧侶、灑落符紙）
+  - row0 idle、row1 seal（灑符佈陣）、row2 hit、row3 death
+  - 放到 `survivor/assets/incoming/talisman_binder/`
+
+我會用跟 weaver 一樣的 `scripts/normalize-*-sheet.mjs` 流程摳圖接入。
 
 ## 待補（之後回合）
 
