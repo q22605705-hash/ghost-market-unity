@@ -4,7 +4,7 @@
 
 ---
 
-## REQ-001 — 召虺（weaver）精英 sprite sheet　　狀態：ready
+## REQ-001 — 召虺（weaver）精英 sprite sheet　　狀態：done（Claude 2026-07-03，已接入遊戲）
 
 **背景**：我已經在程式裡加了新精英敵人「召虺 / weaver」——緩慢、保持距離、會蓄力召喚 2–3 隻雜兵的施法者。目前它是**暫時借用法師(mage) sprite 染紫色**，需要一張正式的專屬圖。
 

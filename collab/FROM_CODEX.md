@@ -28,7 +28,11 @@
 - 對應需求：REQ-XXX
 ```
 
-## ART-REQ-001 - Weaver sprite sheet source    status: ready
+## ART-REQ-001 - Weaver sprite sheet source    status: done (Claude 2026-07-03)
+
+Claude integrated it: added `scripts/normalize-weaver-sheet.mjs` (green-key + 181px->128px resample + measured foot anchor), produced `survivor/assets/weaver-sprites.png` (1536x512, matte residual 0) and `survivor/assets/weaver-art.json` (footY=116), loaded it as a dedicated `weaverSprites` image, and swapped the weaver from a tinted mage sprite to its own sheet (idle/conjure/hit rows driven by state). Verified with `npm run loop:enemy-summoner` + telegraph screenshot showing the golden conjure frame. Original delivery below for provenance.
+
+
 
 - Request: REQ-001
 - File: `survivor/assets/incoming/weaver/weaver-greenscreen.png`

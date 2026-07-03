@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "summoner-enemy-20260628";
+const ASSET_VERSION = "weaver-art-20260703";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -392,6 +392,10 @@ const vfxFields = new Image();
 vfxFields.src = `./assets/skill-vfx-cutouts/normalized/magic-fields.png?v=${ASSET_VERSION}`;
 const vfxIcons = new Image();
 vfxIcons.src = `./assets/skill-vfx-cutouts/normalized/item-icons-fx.png?v=${ASSET_VERSION}`;
+const weaverSprites = new Image();
+weaverSprites.src = `./assets/weaver-sprites.png?v=${ASSET_VERSION}`;
+const WEAVER_ROWS = { idle: 0, conjure: 1, hit: 2, death: 3 };
+const WEAVER_ANCHOR = { x: 64, y: 116 };
 
 const VFX_CELL = 160;
 const ICON_CELL = 128;
@@ -5155,6 +5159,22 @@ function drawSprite(row, frame, x, y, size = SPRITE, flip = false, angle = 0, al
   ctx.restore();
 }
 
+function weaverSheetReady() {
+  return weaverSprites.complete && weaverSprites.naturalWidth > 0;
+}
+
+function drawWeaverSprite(row, frame, x, y, size, flip, alpha = 1) {
+  const cell = 128;
+  const sx = (frame % 12) * cell;
+  const sy = row * cell;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(Math.round(x), Math.round(y));
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(weaverSprites, sx, sy, cell, cell, -(WEAVER_ANCHOR.x / cell) * size, -(WEAVER_ANCHOR.y / cell) * size, size, size);
+  ctx.restore();
+}
+
 function drawPlayer() {
   const p = state.player;
   const s = worldToScreen(p.x, p.y);
@@ -5269,8 +5289,15 @@ function drawEnemies() {
     const frame = Math.floor(e.anim) % 12;
     const anchor = resolveFrameAnchor(row, frame, { x: 64, y: 127 });
     drawEnemyAura(e, s, size);
-    if (e.hit > 0) drawSprite(row, frame, s.x, s.y, (size + 8) * VIEW_SCALE, e.x > state.player.x, 0, 0.45, anchor.x, anchor.y);
-    drawSprite(row, frame, s.x, s.y, size * VIEW_SCALE, e.x > state.player.x, 0, style.alpha, anchor.x, anchor.y);
+    if (e.kind === "weaver" && weaverSheetReady()) {
+      const wRow = e.conjureCast ? WEAVER_ROWS.conjure : e.hit > 0 ? WEAVER_ROWS.hit : WEAVER_ROWS.idle;
+      const flip = e.x > state.player.x;
+      if (e.hit > 0) drawWeaverSprite(wRow, frame, s.x, s.y, (size + 8) * VIEW_SCALE, flip, 0.45);
+      drawWeaverSprite(wRow, frame, s.x, s.y, size * VIEW_SCALE, flip, style.alpha);
+    } else {
+      if (e.hit > 0) drawSprite(row, frame, s.x, s.y, (size + 8) * VIEW_SCALE, e.x > state.player.x, 0, 0.45, anchor.x, anchor.y);
+      drawSprite(row, frame, s.x, s.y, size * VIEW_SCALE, e.x > state.player.x, 0, style.alpha, anchor.x, anchor.y);
+    }
     if (style.mark) center(style.mark, s.x, s.y - size * 0.48 * VIEW_SCALE, 14, style.color);
     ctx.fillStyle = "#1b0b0b";
     ctx.fillRect(s.x - 22 * VIEW_SCALE, s.y - size * 0.9 * VIEW_SCALE, 44 * VIEW_SCALE, 5 * VIEW_SCALE);
@@ -5341,7 +5368,7 @@ function enemyStyle(enemy) {
   if (kind === "brute") return { row: ROW.brute, size: 124, color: "#ff7b32", alpha: 1, mark: "" };
   if (kind === "warden") return { row: ROW.brute, size: 116, color: "#7dd3fc", alpha: 0.95, mark: "護" };
   if (kind === "mage") return { row: ROW.mage, size: 104, color: "#f472b6", alpha: 1, mark: "" };
-  if (kind === "weaver") return { row: ROW.mage, size: 112, color: "#a78bfa", alpha: 1, mark: "召" };
+  if (kind === "weaver") return { row: ROW.mage, size: 120, color: "#a78bfa", alpha: 1, mark: "召" };
   if (kind === "bomber") return { row: ROW.ghoul, size: 104, color: "#f59e0b", alpha: 1, mark: "爆" };
   if (kind === "skitter") return { row: ROW.ghoul, size: 82, color: "#fb7185", alpha: 1, mark: "" };
   return { row: ROW.ghoul, size: 96, color: "#f04452", alpha: 1, mark: "" };

@@ -870,3 +870,12 @@ Testing
 - Updated cache version to `summoner-enemy-20260628` (`ASSET_VERSION` in `survivor/game.js` and `?v=` in `survivor/index.html`).
 - Verified green with `node --check survivor/game.js`, `node --check scripts/playtest-survivor-loop.mjs`, `npx.cmd tsc --pretty false`, `npm run loop:enemy-summoner`, plus the `npm run loop:smoke` and `npm run loop:upgrade-choice` regressions. Inspected the telegraph screenshot (conjure banner visible). No console errors or failed requests.
 - New evidence: `survivor/test-artifacts/loop-enemy-summoner-telegraph.png`, `survivor/test-artifacts/loop-enemy-summoner-resolved.png`, and `survivor/test-artifacts/loop-enemy-summoner-result.json`.
+
+2026-07-03 weaver bespoke art integration (Codex handoff REQ-001)
+
+- Processed the Codex-delivered green-screen weaver sheet (`survivor/assets/incoming/weaver/weaver-greenscreen.png`, 2172x724, 12x4 @181px).
+- Added `scripts/normalize-weaver-sheet.mjs`: corner-sampled chroma key + green despill, bilinear 181px->128px resample per cell, and a measured foot anchor. Output `survivor/assets/weaver-sprites.png` (1536x512, matte residual ratio 0) and `survivor/assets/weaver-art.json` (rows idle/conjure/hit/death, anchor y=116).
+- Loaded a dedicated `weaverSprites` image and added `drawWeaverSprite`; `drawEnemies` now renders the weaver from its own sheet with state-driven rows (conjure row while `conjureCast`, hit row while recoiling, idle otherwise) instead of the previous tinted mage sprite. Bumped weaver on-screen size to 120 for elite presence; kept the 召 mark and health bar.
+- Updated cache version to `weaver-art-20260703` (`ASSET_VERSION` + `index.html`).
+- Verified with `node --check survivor/game.js`, `npx.cmd tsc --pretty false`, `npm run loop:enemy-summoner`, and `npm run loop:smoke`. Telegraph screenshot confirms the golden conjure frame renders in-game with no console errors or failed requests.
+- This is the first full Claude×Codex art-pipeline round trip (Codex generated the art, Claude cut it out and wired it in). REQ-001 marked done in `collab/TO_CODEX.md` / `collab/FROM_CODEX.md`.
