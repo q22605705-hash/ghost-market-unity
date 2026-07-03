@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "elite-enemies-20260703";
+const ASSET_VERSION = "elite-art-20260703";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -394,10 +394,17 @@ const vfxFields = new Image();
 vfxFields.src = `./assets/skill-vfx-cutouts/normalized/magic-fields.png?v=${ASSET_VERSION}`;
 const vfxIcons = new Image();
 vfxIcons.src = `./assets/skill-vfx-cutouts/normalized/item-icons-fx.png?v=${ASSET_VERSION}`;
-const weaverSprites = new Image();
-weaverSprites.src = `./assets/weaver-sprites.png?v=${ASSET_VERSION}`;
-const WEAVER_ROWS = { idle: 0, conjure: 1, hit: 2, death: 3 };
-const WEAVER_ANCHOR = { x: 64, y: 116 };
+// Bespoke elite sprite sheets (Codex art, normalized to 12x4 128px cells).
+// Rows: 0=idle, 1=action (conjure/cast/seal), 2=hit, 3=death.
+const ELITE_ROWS = { idle: 0, action: 1, hit: 2, death: 3 };
+const ELITE_SHEETS = {
+  weaver: { img: new Image(), file: "weaver-sprites.png", anchorY: 116 },
+  mirror_lantern: { img: new Image(), file: "mirror_lantern-sprites.png", anchorY: 122 },
+  talisman_binder: { img: new Image(), file: "talisman_binder-sprites.png", anchorY: 117 }
+};
+for (const sheet of Object.values(ELITE_SHEETS)) {
+  sheet.img.src = `./assets/${sheet.file}?v=${ASSET_VERSION}`;
+}
 
 const VFX_CELL = 160;
 const ICON_CELL = 128;
@@ -4879,6 +4886,7 @@ function resolveMirrorShot(e) {
 
 function updateTalismanBinder(e, dt) {
   const profile = GAME_CONFIG.enemyProfiles.talisman_binder;
+  e.bindPose = Math.max(0, (e.bindPose || 0) - dt);
   e.bind = (e.bind ?? rand(4.2, 5)) - dt;
   if (e.bind <= 0 && dist(e, state.player) < 680) {
     placeBindSeals(e);
@@ -4906,6 +4914,7 @@ function placeBindSeals(e) {
       slow: 0.9
     });
   }
+  e.bindPose = 0.6;
   state.message = "縛符師佈下符陣：別踩到減速符";
 }
 
@@ -5257,11 +5266,20 @@ function drawSprite(row, frame, x, y, size = SPRITE, flip = false, angle = 0, al
   ctx.restore();
 }
 
-function weaverSheetReady() {
-  return weaverSprites.complete && weaverSprites.naturalWidth > 0;
+function eliteSheetReady(kind) {
+  const sheet = ELITE_SHEETS[kind];
+  return Boolean(sheet && sheet.img.complete && sheet.img.naturalWidth > 0);
 }
 
-function drawWeaverSprite(row, frame, x, y, size, flip, alpha = 1) {
+function eliteActing(e) {
+  if (e.kind === "weaver") return Boolean(e.conjureCast);
+  if (e.kind === "mirror_lantern") return Boolean(e.mirrorCast);
+  if (e.kind === "talisman_binder") return (e.bindPose || 0) > 0;
+  return false;
+}
+
+function drawEliteSprite(kind, row, frame, x, y, size, flip, alpha = 1) {
+  const sheet = ELITE_SHEETS[kind];
   const cell = 128;
   const sx = (frame % 12) * cell;
   const sy = row * cell;
@@ -5269,7 +5287,7 @@ function drawWeaverSprite(row, frame, x, y, size, flip, alpha = 1) {
   ctx.globalAlpha = alpha;
   ctx.translate(Math.round(x), Math.round(y));
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(weaverSprites, sx, sy, cell, cell, -(WEAVER_ANCHOR.x / cell) * size, -(WEAVER_ANCHOR.y / cell) * size, size, size);
+  ctx.drawImage(sheet.img, sx, sy, cell, cell, -(64 / cell) * size, -(sheet.anchorY / cell) * size, size, size);
   ctx.restore();
 }
 
@@ -5387,11 +5405,11 @@ function drawEnemies() {
     const frame = Math.floor(e.anim) % 12;
     const anchor = resolveFrameAnchor(row, frame, { x: 64, y: 127 });
     drawEnemyAura(e, s, size);
-    if (e.kind === "weaver" && weaverSheetReady()) {
-      const wRow = e.conjureCast ? WEAVER_ROWS.conjure : e.hit > 0 ? WEAVER_ROWS.hit : WEAVER_ROWS.idle;
+    if (ELITE_SHEETS[e.kind] && eliteSheetReady(e.kind)) {
+      const wRow = eliteActing(e) ? ELITE_ROWS.action : e.hit > 0 ? ELITE_ROWS.hit : ELITE_ROWS.idle;
       const flip = e.x > state.player.x;
-      if (e.hit > 0) drawWeaverSprite(wRow, frame, s.x, s.y, (size + 8) * VIEW_SCALE, flip, 0.45);
-      drawWeaverSprite(wRow, frame, s.x, s.y, size * VIEW_SCALE, flip, style.alpha);
+      if (e.hit > 0) drawEliteSprite(e.kind, wRow, frame, s.x, s.y, (size + 8) * VIEW_SCALE, flip, 0.45);
+      drawEliteSprite(e.kind, wRow, frame, s.x, s.y, size * VIEW_SCALE, flip, style.alpha);
     } else {
       if (e.hit > 0) drawSprite(row, frame, s.x, s.y, (size + 8) * VIEW_SCALE, e.x > state.player.x, 0, 0.45, anchor.x, anchor.y);
       drawSprite(row, frame, s.x, s.y, size * VIEW_SCALE, e.x > state.player.x, 0, style.alpha, anchor.x, anchor.y);
@@ -5493,8 +5511,8 @@ function enemyStyle(enemy) {
   if (kind === "warden") return { row: ROW.brute, size: 116, color: "#7dd3fc", alpha: 0.95, mark: "護" };
   if (kind === "mage") return { row: ROW.mage, size: 104, color: "#f472b6", alpha: 1, mark: "" };
   if (kind === "weaver") return { row: ROW.mage, size: 120, color: "#a78bfa", alpha: 1, mark: "召" };
-  if (kind === "mirror_lantern") return { row: ROW.mage, size: 106, color: "#fbbf24", alpha: 1, mark: "鏡" };
-  if (kind === "talisman_binder") return { row: ROW.mage, size: 110, color: "#c4b5fd", alpha: 1, mark: "縛" };
+  if (kind === "mirror_lantern") return { row: ROW.mage, size: 116, color: "#fbbf24", alpha: 1, mark: "鏡" };
+  if (kind === "talisman_binder") return { row: ROW.mage, size: 118, color: "#c4b5fd", alpha: 1, mark: "縛" };
   if (kind === "bomber") return { row: ROW.ghoul, size: 104, color: "#f59e0b", alpha: 1, mark: "爆" };
   if (kind === "skitter") return { row: ROW.ghoul, size: 82, color: "#fb7185", alpha: 1, mark: "" };
   return { row: ROW.ghoul, size: 96, color: "#f04452", alpha: 1, mark: "" };

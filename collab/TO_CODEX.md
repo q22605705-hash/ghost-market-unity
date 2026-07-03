@@ -36,7 +36,7 @@
 
 ---
 
-## REQ-003 — 鏡燈使 & 縛符師 專屬 sprite sheet　　狀態：ready
+## REQ-003 — 鏡燈使 & 縛符師 專屬 sprite sheet　　狀態：done（Claude 2026-07-03，兩張都已接入）
 
 兩個新精英目前借用法師 sprite 染色，需要專屬圖（做法同 REQ-001 召虺）。請各生一張綠幕(#00ff00)、**每列 12 幀、128px 儲存格、腳底錨點一致**的 sheet：
 
@@ -49,7 +49,19 @@
 
 我會用跟 weaver 一樣的 `scripts/normalize-*-sheet.mjs` 流程摳圖接入。
 
+## REQ-004 — 主角貓符師完整動作列　　狀態：ready
+
+目前主角 `survivor-sprites.png` 只有 idle / run 兩列，攻擊/受擊全靠 VFX 與程式硬撐（見 `ASSET_PIPELINE.md` Batch A，最高優先缺口）。請生一張主角專屬綠幕(#00ff00) sheet：
+
+- 世界觀：可愛暗黑奇幻「厭世招財貓符師」，與現有主角同一造型/比例/鏡頭角度。
+- **每列 12 幀、128px 儲存格、腳底 bottom-center 錨點一致**。
+- 列（順序固定，我會照這個 index 接）：
+  - row0 idle、row1 run、row2 attack（揮符/放符攻擊）、row3 hit（受擊硬直）、row4 dash（衝刺殘影）、row5 death/down（倒下）
+- 放到 `survivor/assets/incoming/hero/`（例如 `hero-greenscreen.png`），在 `FROM_CODEX.md` 登記列名對照。
+
+**注意**：這張是 6 列，我會用 `normalize-*-sheet.mjs` 改成 12×6、128px 接入主角渲染（比精英的 4 列多，摳圖流程相同）。
+
 ## 待補（之後回合）
 
-- Batch A：主角完整動作列（attack / hit / death / dash / pickup）——目前 hero 只有 idle/run。
 - Batch D：乾淨的技能/狀態 UI icon roster（keyed by skill id）。
+- 更多敵人/Boss 專屬 sheet（終局首領目前也是借用 brute 染色）。

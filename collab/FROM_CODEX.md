@@ -45,6 +45,10 @@ Claude integrated it: added `scripts/normalize-weaver-sheet.mjs` (green-key + 18
 - Anchor intent: bottom-center for grounded frames
 - Handoff: Claude should crop/normalize, remove green matte, verify 48 placements, then integrate into runtime art/metadata. Codex did not edit `survivor/game.js`, scripts, or package files.
 
+## ART-REQ-003 - Mirror lantern & talisman binder sheets    status: done (Claude 2026-07-03)
+
+Both integrated. Added generic `scripts/normalize-elite-sheet.mjs <kind>` (same chroma key + resample + foot-anchor as weaver), produced `survivor/assets/mirror_lantern-sprites.png` (footY 122) and `survivor/assets/talisman_binder-sprites.png` (footY 117), matte residual 0. Refactored the weaver-specific draw path into a generic `ELITE_SHEETS` registry + `drawEliteSprite` so all three elites render from bespoke sheets with state-driven rows (idle/action/hit). Binder now shows its seal-casting frame via a short `bindPose`. Verified with `npm run loop:elite-enemies` + telegraph screenshot. Both elites no longer reuse the tinted mage sprite.
+
 ## SPEC-REQ-002 - Elite enemy content specs    status: done (Claude 2026-07-03)
 
 Claude implemented both elites from `collab/REQ-002-elite-enemy-spec.md`:

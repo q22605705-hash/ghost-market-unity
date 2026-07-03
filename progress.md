@@ -891,3 +891,12 @@ Testing
 - Verified with `node --check` (game.js + harness), `npx.cmd tsc --pretty false`, `npm run loop:elite-enemies`, and the `loop:enemy-summoner` + `loop:smoke` regressions. Mirror telegraph screenshot inspected. No console errors or failed requests.
 - Follow-up queued as REQ-003: both elites still reuse a tinted mage sprite; bespoke art is the next Codex batch.
 - New evidence: `survivor/test-artifacts/loop-elite-mirror-telegraph.png`, `loop-elite-bind-seals.png`, `loop-elite-bind-slow.png`, `loop-elite-enemies-result.json`.
+
+2026-07-03 bespoke elite art integration (Codex handoff REQ-003)
+
+- Processed the Codex-delivered green-screen sheets for `mirror_lantern` and `talisman_binder` (both 2172x724, 12x4).
+- Added a generic `scripts/normalize-elite-sheet.mjs <kind>` (same chroma key + green despill + 181px->128px resample + measured foot anchor as the weaver script) and produced `survivor/assets/mirror_lantern-sprites.png` (footY 122) and `survivor/assets/talisman_binder-sprites.png` (footY 117), both matte residual ratio 0.
+- Refactored the weaver-specific runtime draw path into a generic `ELITE_SHEETS` registry (`weaver`, `mirror_lantern`, `talisman_binder`) + `drawEliteSprite` + `eliteActing`. All three elites now render from their own bespoke sheet with state-driven rows (idle / action / hit); the binder shows its seal-casting frame via a short `bindPose`. Removed `weaverSprites`/`drawWeaverSprite`/`WEAVER_ROWS` in favour of the registry.
+- Bumped elite on-screen sizes for presence and updated cache version to `elite-art-20260703`.
+- Verified with `node --check survivor/game.js`, `npm run loop:elite-enemies`, `npm run loop:enemy-summoner`, and `npm run loop:smoke`. Mirror-lantern telegraph screenshot confirms the bespoke lantern art (not a tinted mage) renders with the offset telegraph. No console errors or failed requests.
+- Queued REQ-004 (hero full action sheet, Batch A) as the next Codex art batch.

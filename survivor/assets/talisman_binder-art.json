@@ -1,0 +1,27 @@
+{
+  "source": "survivor/assets/incoming/talisman_binder/talisman_binder-greenscreen.png",
+  "sourceSize": [
+    2172,
+    724
+  ],
+  "bgSample": [
+    4,
+    250,
+    3
+  ],
+  "cols": 12,
+  "rows": 4,
+  "cell": 128,
+  "rowNames": [
+    "idle",
+    "action",
+    "hit",
+    "death"
+  ],
+  "anchor": {
+    "x": 64,
+    "y": 117
+  },
+  "matteResidualRatio": 0,
+  "placements": 48
+}
