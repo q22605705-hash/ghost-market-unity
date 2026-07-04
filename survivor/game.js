@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "result-icons-20260704";
+const ASSET_VERSION = "pause-icons-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -7466,7 +7466,8 @@ function drawPauseSkills(x, y) {
     const selectedRow = state.pauseSkillIndex === MAX_ACTIVE_SKILLS + i;
     ctx.fillStyle = selectedRow ? "rgba(126, 218, 194, 0.16)" : "rgba(255,255,255,0.04)";
     ctx.fillRect(x, rowY - 22, 292, 26);
-    text(`${skill.name} Lv.${skill.level}`, x + 16, rowY - 4, 15, "#d9e3df");
+    const nameX = drawUiIcon(familyIconId(skill.family), x + 18, rowY - 9, 20) ? x + 34 : x + 16;
+    text(`${skill.name} Lv.${skill.level}`, nameX, rowY - 4, 15, "#d9e3df");
   });
   if (passives.length > 3) text(`另有 ${passives.length - 3} 項被動`, x + 18, y + 376, 13, "#a8c8c0");
 
