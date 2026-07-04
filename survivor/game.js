@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "map-tint-20260704";
+const ASSET_VERSION = "reanchor-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -398,11 +398,11 @@ vfxIcons.src = `./assets/skill-vfx-cutouts/normalized/item-icons-fx.png?v=${ASSE
 // Rows: 0=idle, 1=action (conjure/cast/seal), 2=hit, 3=death.
 const ELITE_ROWS = { idle: 0, action: 1, hit: 2, death: 3 };
 const ELITE_SHEETS = {
-  weaver: { img: new Image(), file: "weaver-sprites.png", anchorY: 116 },
-  mirror_lantern: { img: new Image(), file: "mirror_lantern-sprites.png", anchorY: 122 },
-  talisman_binder: { img: new Image(), file: "talisman_binder-sprites.png", anchorY: 117 },
-  boss: { img: new Image(), file: "boss-sprites.png", anchorY: 121 },
-  final_boss: { img: new Image(), file: "final_boss-sprites.png", anchorY: 127 }
+  weaver: { img: new Image(), file: "weaver-sprites.png", anchorY: 120 },
+  mirror_lantern: { img: new Image(), file: "mirror_lantern-sprites.png", anchorY: 120 },
+  talisman_binder: { img: new Image(), file: "talisman_binder-sprites.png", anchorY: 120 },
+  boss: { img: new Image(), file: "boss-sprites.png", anchorY: 120 },
+  final_boss: { img: new Image(), file: "final_boss-sprites.png", anchorY: 120 }
 };
 for (const sheet of Object.values(ELITE_SHEETS)) {
   sheet.img.src = `./assets/${sheet.file}?v=${ASSET_VERSION}`;
@@ -412,7 +412,7 @@ for (const sheet of Object.values(ELITE_SHEETS)) {
 const heroSprites = new Image();
 heroSprites.src = `./assets/hero-sprites.png?v=${ASSET_VERSION}`;
 const HERO_ROWS = { idle: 0, run: 1, attack: 2, hit: 3, dash: 4, death: 5 };
-const HERO_ANCHOR_Y = 122;
+const HERO_ANCHOR_Y = 120;
 const HERO_ANIM = { attack: 0.26, hit: 0.3, dash: 0.28 };
 
 // Bespoke UI icon roster (Codex art): 6x4 128px cells, id -> [col, row].

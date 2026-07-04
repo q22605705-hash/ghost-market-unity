@@ -1,14 +1,5 @@
 {
-  "source": "survivor/assets/incoming/hero/hero-greenscreen.png",
-  "sourceSize": [
-    1774,
-    887
-  ],
-  "bgSample": [
-    5,
-    249,
-    2
-  ],
+  "source": "incoming/hero/hero-greenscreen.png",
   "cols": 12,
   "rows": 6,
   "cell": 128,
@@ -22,8 +13,8 @@
   ],
   "anchor": {
     "x": 64,
-    "y": 122
+    "y": 120
   },
-  "matteResidualRatio": 0,
-  "placements": 72
+  "reanchored": true,
+  "matteResidualRatio": 0
 }

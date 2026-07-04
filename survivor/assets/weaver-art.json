@@ -1,27 +1,18 @@
 {
-  "source": "survivor/assets/incoming/weaver/weaver-greenscreen.png",
-  "sourceSize": [
-    2172,
-    724
-  ],
-  "bgSample": [
-    3,
-    250,
-    2
-  ],
+  "source": "incoming/weaver/weaver-greenscreen.png",
   "cols": 12,
   "rows": 4,
   "cell": 128,
   "rowNames": [
     "idle",
-    "conjure",
+    "action",
     "hit",
     "death"
   ],
   "anchor": {
     "x": 64,
-    "y": 116
+    "y": 120
   },
-  "matteResidualRatio": 0,
-  "placements": 48
+  "reanchored": true,
+  "matteResidualRatio": 0
 }

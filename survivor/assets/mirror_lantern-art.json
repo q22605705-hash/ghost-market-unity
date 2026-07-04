@@ -1,14 +1,5 @@
 {
-  "source": "survivor/assets/incoming/mirror_lantern/mirror_lantern-greenscreen.png",
-  "sourceSize": [
-    2172,
-    724
-  ],
-  "bgSample": [
-    12,
-    246,
-    3
-  ],
+  "source": "incoming/mirror_lantern/mirror_lantern-greenscreen.png",
   "cols": 12,
   "rows": 4,
   "cell": 128,
@@ -20,8 +11,8 @@
   ],
   "anchor": {
     "x": 64,
-    "y": 122
+    "y": 120
   },
-  "matteResidualRatio": 0,
-  "placements": 48
+  "reanchored": true,
+  "matteResidualRatio": 0
 }
