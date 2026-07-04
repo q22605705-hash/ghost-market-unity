@@ -1,0 +1,40 @@
+{
+  "status": "ready",
+  "request": "Batch D UI icon roster",
+  "sourceImage": "survivor/assets/incoming/icons/ui-icons-roster-greenscreen.png",
+  "background": "#00ff00",
+  "sourceSize": { "width": 1536, "height": 1024 },
+  "sourceGrid": { "columns": 6, "rows": 4, "cellSize": 256 },
+  "targetGrid": { "columns": 6, "rows": 4, "cellSize": 128 },
+  "ids": [
+    { "id": "fire", "row": 0, "column": 0, "label": "Fire element", "intendedUse": "element/skill family" },
+    { "id": "water", "row": 0, "column": 1, "label": "Water element", "intendedUse": "element/skill family" },
+    { "id": "lightning", "row": 0, "column": 2, "label": "Lightning element", "intendedUse": "element/skill family" },
+    { "id": "poison", "row": 0, "column": 3, "label": "Poison element", "intendedUse": "element/status" },
+    { "id": "shadow", "row": 0, "column": 4, "label": "Shadow element", "intendedUse": "element/skill family" },
+    { "id": "holy", "row": 0, "column": 5, "label": "Holy element", "intendedUse": "element/skill family" },
+    { "id": "wind", "row": 1, "column": 0, "label": "Wind element", "intendedUse": "element/skill family" },
+    { "id": "health", "row": 1, "column": 1, "label": "Health", "intendedUse": "stat/passive" },
+    { "id": "shield", "row": 1, "column": 2, "label": "Shield", "intendedUse": "stat/status" },
+    { "id": "speed", "row": 1, "column": 3, "label": "Speed", "intendedUse": "stat/passive" },
+    { "id": "magnet", "row": 1, "column": 4, "label": "Magnet", "intendedUse": "pickup/passive" },
+    { "id": "summon", "row": 1, "column": 5, "label": "Summon", "intendedUse": "summon/companion" },
+    { "id": "moon_dust", "row": 2, "column": 0, "label": "Moon Dust", "intendedUse": "currency" },
+    { "id": "memory_shard", "row": 2, "column": 1, "label": "Memory Shard", "intendedUse": "collection/progression" },
+    { "id": "boss_key", "row": 2, "column": 2, "label": "Boss Key", "intendedUse": "objective/progression" },
+    { "id": "reroll", "row": 2, "column": 3, "label": "Reroll", "intendedUse": "upgrade-choice action" },
+    { "id": "revive", "row": 2, "column": 4, "label": "Revive", "intendedUse": "status/action" },
+    { "id": "blade", "row": 2, "column": 5, "label": "Blade", "intendedUse": "skill family" },
+    { "id": "talisman", "row": 3, "column": 0, "label": "Talisman", "intendedUse": "base weapon/skill" },
+    { "id": "burn", "row": 3, "column": 1, "label": "Burn", "intendedUse": "status" },
+    { "id": "slow", "row": 3, "column": 2, "label": "Slow", "intendedUse": "status" },
+    { "id": "curse", "row": 3, "column": 3, "label": "Curse", "intendedUse": "status" },
+    { "id": "armor", "row": 3, "column": 4, "label": "Armor", "intendedUse": "stat/passive" },
+    { "id": "pickup_range", "row": 3, "column": 5, "label": "Pickup Range", "intendedUse": "pickup/passive" }
+  ],
+  "handoffNotes": [
+    "Remove chroma green and slice by sourceGrid first, then downscale each icon to 128x128.",
+    "No readable text labels are intentionally included in the image; talisman papers use abstract marks only.",
+    "Use ids as runtime keys rather than source row labels."
+  ]
+}
