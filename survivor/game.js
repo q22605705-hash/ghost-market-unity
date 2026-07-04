@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "ui-icons-20260704";
+const ASSET_VERSION = "ui-icons-hud-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -5838,12 +5838,14 @@ function drawHud() {
   text("生命", 34, 58, 14);
   text("閃避", 34, 86, 14);
   text(state.runType === "garden" ? `分數 ${gardenScore()}` : `魂火 ${Math.floor(state.xp)}/${state.xpNeed}`, 248, 86, 14);
-  text(`${elementName(state.stats.element)} · ${selectedEquipment().name}`, 248, 114, 14, elementColor(state.stats.element));
+  const elementIconShown = state.stats.element && drawUiIcon(state.stats.element, 240, 110, 20);
+  text(`${elementName(state.stats.element)} · ${selectedEquipment().name}`, elementIconShown ? 256 : 248, 114, 14, elementColor(state.stats.element));
   text(readout.line, 34, 132, 13, elementColor(readout.element));
   text(readout.subline, 248, 132, 13, readout.challenge?.done ? "#ffe18a" : "#a8c8c0");
   text(`主線焦點：${focus.title} ${focus.progress}`, 34, 152, 13, focus.color || "#ffe18a");
   text(fitText(focus.objective, 210, 12), 248, 152, 12, "#a8c8c0");
   if (p.hp / Math.max(1, state.stats.maxHp) < 0.32) text("低生命：拉開距離，保留閃避", 34, 190, 15, "#ffb4a8");
+  drawPlayerStatusIcons(p);
   if (state.mode === "playing") {
     drawCombatTracker();
     drawBuildProgressPanel();
@@ -5860,6 +5862,15 @@ function drawHud() {
   if (state.mode === "playing") drawTutorialQuestPanel();
   if (state.mode === "playing") drawVirtualControls();
   text(state.message, state.mode === "playing" ? 224 : 26, H - 28, 16, "#d8e3df");
+}
+
+function drawPlayerStatusIcons(p) {
+  let sx = 238;
+  const sy = 66;
+  const add = (id) => { if (drawUiIcon(id, sx, sy, 22)) sx += 26; };
+  if ((p.slowT || 0) > 0) add("slow");
+  if (state.stats.holy.shield > 0) add("shield");
+  if (p.hp / Math.max(1, state.stats.maxHp) < 0.32) add("health");
 }
 
 function drawTutorialQuestPanel() {
@@ -6341,8 +6352,8 @@ function drawMenu() {
 
   drawTopProfile();
   drawTopResource(430, 24, "#ffd66b", "體力", "102/160");
-  drawTopResource(590, 24, "#ffe18a", "月塵", `${saveData.moonDust}`);
-  drawTopResource(750, 24, "#77f0d2", "碎片", `${saveData.memoryFragments.length}/8`);
+  drawTopResource(590, 24, "#ffe18a", "月塵", `${saveData.moonDust}`, "moon_dust");
+  drawTopResource(750, 24, "#77f0d2", "碎片", `${saveData.memoryFragments.length}/8`, "memory_shard");
   drawTopIcon(945, 34, "R");
   drawTopIcon(1000, 34, "M");
   drawTopIcon(1055, 34, "S");
@@ -6355,7 +6366,8 @@ function drawMenu() {
   ctx.fillStyle = aura;
   ctx.fillRect(230, 70, 650, 560);
   ctx.restore();
-  drawSprite(ROW.heroIdle, 0, 560, 558, 305, false, 0, 1, 67, 122);
+  if (heroSheetReady()) drawHeroSprite(HERO_ROWS.idle, Math.floor(state.time * 6) % 12, 560, 558, 305, false, 1);
+  else drawSprite(ROW.heroIdle, 0, 560, 558, 305, false, 0, 1, 67, 122);
 
   drawBottomDock();
   drawHomeNav(72, 574, "記憶", "◆", state.menuTab === "memory");
@@ -6864,14 +6876,16 @@ function fragmentLabel() {
   return fragment ? fragment.name : "尚未形成記憶碎片";
 }
 
-function drawTopResource(x, y, color, label, value) {
+function drawTopResource(x, y, color, label, value, iconId) {
   ctx.save();
   ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
   ctx.fillRect(x, y, 130, 30);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(x + 18, y + 15, 8, 0, TWO_PI);
-  ctx.fill();
+  if (!(iconId && drawUiIcon(iconId, x + 18, y + 15, 26))) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x + 18, y + 15, 8, 0, TWO_PI);
+    ctx.fill();
+  }
   text(`${label} ${value}`, x + 34, y + 21, 15, "#f7f1de");
   ctx.restore();
 }

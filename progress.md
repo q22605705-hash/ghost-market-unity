@@ -941,3 +941,12 @@ Testing
 - Updated cache version to `ui-icons-20260704`.
 - Verified with `node --check`, `npx.cmd tsc --pretty false`, `npm run loop:upgrade-choice` (screenshot shows fire/water element icons + the Utility speed icon on the cards, atlas loads with no failed request), and the `loop:smoke` / `loop:pause-info` regressions. No console errors.
 - This completes the queued Codex art batches (hero + 3 elites + 2 bosses + UI icons). No character or the hero uses a placeholder; icons are id-keyed for future UI polish.
+
+2026-07-04 UI icon HUD polish pass (Claude solo, uses the ICONS-001 atlas)
+
+- Spread the newly-integrated UI icon roster across the most-seen surfaces (no new art needed):
+  - In-run HUD: element icon next to the element/equipment line (element ids map 1:1 to icon ids), and a `drawPlayerStatusIcons` strip showing slow / shield / low-HP icons by the health bar.
+  - Home screen: moon dust and memory shard now show their bespoke icons via a new optional `iconId` arg on `drawTopResource`.
+  - Home hero preview now renders from the bespoke `heroSprites` idle row (with a slow idle cycle) instead of the old main-sheet sprite; falls back if the sheet has not loaded.
+- Updated cache version to `ui-icons-hud-20260704`.
+- Verified with `node --check`, `npx.cmd tsc --pretty false`, and the `loop:smoke` (home hero + resource icons), `loop:combat-readability`, `loop:upgrade-choice`, `loop:elite-enemies`, and `loop:final-boss` screenshots/regressions. Home menu screenshot confirms the bespoke cat-mage preview and the moon-dust/memory-shard icons. No console errors or failed requests.
