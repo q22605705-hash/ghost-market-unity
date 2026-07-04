@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "reanchor-20260704";
+const ASSET_VERSION = "declutter-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -2823,7 +2823,7 @@ function applyStoryRunFocusStart() {
     enemy.y = clamp(state.player.y + Math.sin(angle) * radius, 60, WORLD_H - 60);
   }
   state.phaseNoticeT = Math.max(state.phaseNoticeT, 4.8);
-  showMilestoneBanner("phase", focus.title, focus.battleNote, 3.6);
+  showMilestoneBanner("phase", focus.title, focus.battleNote, 2.2);
   state.message = `${focus.title}：${focus.objective}`;
 }
 
@@ -5909,6 +5909,7 @@ function drawPlayerStatusIcons(p) {
 
 function drawTutorialQuestPanel() {
   const summary = tutorialQuestSummary();
+  if (summary.completed >= summary.total) return; // onboarding done — stop crowding the field
   const x = 756;
   const y = H - 248;
   const w = 356;
@@ -6217,24 +6218,23 @@ function drawMilestoneBanner() {
   const fadeOut = Math.min(1, banner.t / 0.45);
   const alpha = Math.min(fadeIn, fadeOut);
   const pulse = 0.5 + Math.sin(performance.now() / 90) * 0.5;
-  const w = 560;
-  const h = 92;
+  const w = 468;
+  const h = 60;
   const x = W / 2 - w / 2;
-  const y = 142;
+  const y = 92;
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = "rgba(5, 10, 13, 0.82)";
+  ctx.globalAlpha = alpha * 0.92;
+  ctx.fillStyle = "rgba(5, 10, 13, 0.72)";
   ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = banner.color;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
-  ctx.globalAlpha = alpha * (0.18 + pulse * 0.12);
+  ctx.globalAlpha = alpha * (0.16 + pulse * 0.1);
   ctx.fillStyle = banner.color;
-  ctx.fillRect(x, y, w, 7);
-  ctx.fillRect(x, y + h - 7, w, 7);
+  ctx.fillRect(x, y, w, 5);
   ctx.globalAlpha = alpha;
-  center(banner.title, W / 2, y + 40, 28, "#fff4d8");
-  center(banner.subtitle, W / 2, y + 68, 16, banner.color);
+  center(banner.title, W / 2, y + 26, 21, "#fff4d8");
+  center(fitText(banner.subtitle, w - 40, 13), W / 2, y + 47, 13, banner.color);
   ctx.restore();
 }
 
@@ -6243,8 +6243,8 @@ function drawCombatTracker() {
   const progress = tracker.challenge;
   const damageFocus = tracker.damageFocus;
   ctx.save();
-  ctx.fillStyle = "rgba(5, 10, 13, 0.72)";
-  ctx.strokeStyle = state.finalBossActive ? "#ffe18a" : "#40565a";
+  ctx.fillStyle = "rgba(5, 10, 13, 0.52)";
+  ctx.strokeStyle = state.finalBossActive ? "#ffe18a" : "rgba(64, 86, 90, 0.7)";
   ctx.lineWidth = 2;
   ctx.fillRect(876, 72, 288, 136);
   ctx.strokeRect(876, 72, 288, 136);
@@ -6276,7 +6276,7 @@ function drawBuildProgressPanel() {
   const h = 112;
   const evo = summary.nextEvolution;
   ctx.save();
-  ctx.fillStyle = "rgba(5, 10, 13, 0.72)";
+  ctx.fillStyle = "rgba(5, 10, 13, 0.52)";
   ctx.strokeStyle = evo?.readyNext ? "#ffe18a" : summary.color;
   ctx.lineWidth = 2;
   ctx.fillRect(x, y, w, h);
