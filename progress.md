@@ -965,3 +965,10 @@ Testing
 - Added reward icons to `drawRewardStrip` (月塵→moon_dust, Boss→boss_key, 精英→summon, 記憶→memory_shard) and a moon_dust icon to the death-screen 月塵 stat cell.
 - Updated cache version to `result-icons-20260704`.
 - Verified with `node --check`, `npx.cmd tsc --pretty false`, and `npm run loop:result-damage`; the result screenshot shows the bespoke hero art plus the reward icons. No console errors or failed requests.
+
+2026-07-04 finishing loop: pause icons + per-mode map tint (Claude solo)
+
+- Pause > Skills passive rows now show a family/element icon (`pause-icons-20260704`).
+- Added `mapTintForMode()`: the shared battlefield plate now gets a subtle per-run-mode colour wash (cultivation keeps the exact original neutral overlay; gauntlet = warm crimson; garden = cool blue). Purely cosmetic — delivers the REQ-006 "visual variety per mode" value without new art and without touching gameplay. Bespoke background plates (REQ-006) remain queued for Codex as an optional upgrade. Cache `map-tint-20260704`.
+- Verified with `node --check`, `npx.cmd tsc --pretty false`, and `npm run loop:smoke` / `loop:pause-info`.
+- State at end of the finishing loop: every character/enemy/boss uses bespoke art; UI icons span cards, HUD, home, result, enemy status, and pause; modes vary visually; all committed and pushed to origin/main. The solo-finishable scope is complete; the only remaining item (bespoke background plates) awaits Codex REQ-006.

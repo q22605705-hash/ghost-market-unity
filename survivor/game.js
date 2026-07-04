@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "pause-icons-20260704";
+const ASSET_VERSION = "map-tint-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -5178,6 +5178,14 @@ function draw() {
   if (state.mode === "result") drawResult();
 }
 
+function mapTintForMode() {
+  // Purely cosmetic per-mode wash over the shared battlefield plate; the default
+  // cultivation run keeps the original neutral overlay.
+  if (state.runType === "gauntlet") return "rgba(30, 6, 8, 0.22)";
+  if (state.runType === "garden") return "rgba(3, 12, 18, 0.22)";
+  return "rgba(2, 8, 9, 0.18)";
+}
+
 function drawBackground() {
   ctx.fillStyle = "#071414";
   ctx.fillRect(0, 0, W, H);
@@ -5207,7 +5215,7 @@ function drawBackground() {
       WORLD_W * VIEW_SCALE,
       WORLD_H * VIEW_SCALE
     );
-    ctx.fillStyle = "rgba(2, 8, 9, 0.18)";
+    ctx.fillStyle = mapTintForMode();
     ctx.fillRect(0, 0, W, H);
     return;
   }
