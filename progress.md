@@ -911,3 +911,13 @@ Testing
 - Updated cache version to `hero-art-20260703`.
 - Verified with `node --check` (game.js + harness), `npx.cmd tsc --pretty false`, `npm run loop:hero-anim`, and the `loop:smoke` / `loop:combat-readability` / `loop:elite-enemies` regressions. Attack-frame screenshot confirms the bespoke cat-mage art renders. No console errors or failed requests.
 - The player now has real attack/hit/dash/death animation instead of idle/run-only + VFX. Queued REQ-005 (final boss / boss bespoke sheets) as the next Codex art batch.
+
+2026-07-04 final boss bespoke art integration (Codex handoff REQ-005)
+
+- Processed the Codex-delivered green-screen final boss sheet (`survivor/assets/incoming/final_boss/final_boss-greenscreen.png`, 2172x724, 12x4).
+- Normalized via `scripts/normalize-elite-sheet.mjs final_boss 4 idle,cast,hit,death` → `survivor/assets/final_boss-sprites.png` (1536x512, footY 127, matte residual 0) + `final_boss-art.json`.
+- Added `final_boss` to the `ELITE_SHEETS` registry and an `eliteSheetKey(e)` helper so the final boss (which has `kind:"boss"` plus the `finalBoss` flag) renders from its bespoke moon-deity sheet; `eliteActing` treats `castT`/`specialCast` as the cast row. Regular non-final bosses keep the tinted-brute fallback.
+- Added `loop:final-boss`: spawns the final boss, asserts it is active with a phase HUD, forces the 怨月封印 special, and confirms the cast is surfaced in `castingEnemies`; captures idle + cast screenshots.
+- Updated cache version to `final-boss-art-20260704`.
+- Verified with `node --check`, `npx.cmd tsc --pretty false`, `npm run loop:final-boss`, and the `loop:smoke` / `loop:hero-anim` / `loop:enemy-summoner` regressions. Cast screenshot confirms the bespoke boss art renders. No console errors or failed requests.
+- Five bespoke sheets now integrated (hero + weaver + mirror_lantern + talisman_binder + final_boss). Next Codex art batch: Batch D UI icons, or a regular-boss sheet.

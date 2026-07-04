@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "hero-art-20260703";
+const ASSET_VERSION = "final-boss-art-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -400,7 +400,8 @@ const ELITE_ROWS = { idle: 0, action: 1, hit: 2, death: 3 };
 const ELITE_SHEETS = {
   weaver: { img: new Image(), file: "weaver-sprites.png", anchorY: 116 },
   mirror_lantern: { img: new Image(), file: "mirror_lantern-sprites.png", anchorY: 122 },
-  talisman_binder: { img: new Image(), file: "talisman_binder-sprites.png", anchorY: 117 }
+  talisman_binder: { img: new Image(), file: "talisman_binder-sprites.png", anchorY: 117 },
+  final_boss: { img: new Image(), file: "final_boss-sprites.png", anchorY: 127 }
 };
 for (const sheet of Object.values(ELITE_SHEETS)) {
   sheet.img.src = `./assets/${sheet.file}?v=${ASSET_VERSION}`;
@@ -5284,7 +5285,12 @@ function eliteSheetReady(kind) {
   return Boolean(sheet && sheet.img.complete && sheet.img.naturalWidth > 0);
 }
 
+function eliteSheetKey(e) {
+  return e.finalBoss ? "final_boss" : e.kind;
+}
+
 function eliteActing(e) {
+  if (e.finalBoss) return Boolean(e.castT > 0 || e.specialCast);
   if (e.kind === "weaver") return Boolean(e.conjureCast);
   if (e.kind === "mirror_lantern") return Boolean(e.mirrorCast);
   if (e.kind === "talisman_binder") return (e.bindPose || 0) > 0;
@@ -5455,11 +5461,12 @@ function drawEnemies() {
     const frame = Math.floor(e.anim) % 12;
     const anchor = resolveFrameAnchor(row, frame, { x: 64, y: 127 });
     drawEnemyAura(e, s, size);
-    if (ELITE_SHEETS[e.kind] && eliteSheetReady(e.kind)) {
+    const sheetKey = eliteSheetKey(e);
+    if (ELITE_SHEETS[sheetKey] && eliteSheetReady(sheetKey)) {
       const wRow = eliteActing(e) ? ELITE_ROWS.action : e.hit > 0 ? ELITE_ROWS.hit : ELITE_ROWS.idle;
       const flip = e.x > state.player.x;
-      if (e.hit > 0) drawEliteSprite(e.kind, wRow, frame, s.x, s.y, (size + 8) * VIEW_SCALE, flip, 0.45);
-      drawEliteSprite(e.kind, wRow, frame, s.x, s.y, size * VIEW_SCALE, flip, style.alpha);
+      if (e.hit > 0) drawEliteSprite(sheetKey, wRow, frame, s.x, s.y, (size + 8) * VIEW_SCALE, flip, 0.45);
+      drawEliteSprite(sheetKey, wRow, frame, s.x, s.y, size * VIEW_SCALE, flip, style.alpha);
     } else {
       if (e.hit > 0) drawSprite(row, frame, s.x, s.y, (size + 8) * VIEW_SCALE, e.x > state.player.x, 0, 0.45, anchor.x, anchor.y);
       drawSprite(row, frame, s.x, s.y, size * VIEW_SCALE, e.x > state.player.x, 0, style.alpha, anchor.x, anchor.y);

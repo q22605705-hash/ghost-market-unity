@@ -415,6 +415,32 @@ async function heroAnim(page) {
   };
 }
 
+async function finalBoss(page) {
+  // Spawn the final boss and confirm it is active with bespoke art (no failed request).
+  const spawned = JSON.parse(await page.evaluate(() => window.debug_spawn_final_boss()));
+  if (!spawned.finalBossActive) {
+    throw new Error(`Final boss did not activate: ${JSON.stringify({ finalBossActive: spawned.finalBossActive })}`);
+  }
+  if (!spawned.boss || !spawned.boss.finalBoss || !spawned.boss.finalPhase?.title) {
+    throw new Error(`Final boss HUD is missing: ${JSON.stringify(spawned.boss)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-final-boss-idle.png"), fullPage: true });
+
+  // Force its special cast and confirm the cast state is surfaced (drives the cast row).
+  const cast = JSON.parse(await page.evaluate(() => window.debug_force_enemy_cast("finalBoss", true)));
+  const casting = (cast.castingEnemies || []).find((e) => e.kind === "finalBoss");
+  if (!casting) {
+    throw new Error(`Final boss cast not surfaced: ${JSON.stringify(cast.castingEnemies)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-final-boss-cast.png"), fullPage: true });
+  return {
+    scenario: "final-boss",
+    finalBossActive: spawned.finalBossActive,
+    bossPhase: spawned.boss.finalPhase.title,
+    casting
+  };
+}
+
 const scenarios = {
   smoke,
   "result-damage": resultDamage,
@@ -423,7 +449,8 @@ const scenarios = {
   "upgrade-choice": upgradeChoice,
   "enemy-summoner": enemySummoner,
   "elite-enemies": eliteEnemies,
-  "hero-anim": heroAnim
+  "hero-anim": heroAnim,
+  "final-boss": finalBoss
 };
 
 async function main() {

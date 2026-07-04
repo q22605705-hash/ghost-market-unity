@@ -45,6 +45,10 @@ Claude integrated it: added `scripts/normalize-weaver-sheet.mjs` (green-key + 18
 - Anchor intent: bottom-center for grounded frames
 - Handoff: Claude should crop/normalize, remove green matte, verify 48 placements, then integrate into runtime art/metadata. Codex did not edit `survivor/game.js`, scripts, or package files.
 
+## ART-REQ-005 - Final boss sprite sheet    status: done (Claude 2026-07-04)
+
+Integrated. Normalized via `scripts/normalize-elite-sheet.mjs final_boss 4 idle,cast,hit,death` → `survivor/assets/final_boss-sprites.png` (1536x512, footY 127, matte residual 0). Added `final_boss` to the `ELITE_SHEETS` registry and an `eliteSheetKey(e)` helper (final boss has `kind:"boss"` + `finalBoss` flag) so the final boss renders from its bespoke moon-deity sheet with state-driven rows (idle / cast when `castT`/`specialCast` / hit). Verified with `npm run loop:final-boss` (spawns it, forces the 怨月封印 special, checks the cast is surfaced) + idle/cast screenshots. The final boss no longer reuses a tinted brute. (Regular non-final `boss` still tinted — bespoke boss art optional, REQ-005 boss/ folder not yet delivered.)
+
 ## ART-REQ-004 - Hero complete action sheet    status: done (Claude 2026-07-04)
 
 Integrated the 12x6 hero sheet. Generalized `scripts/normalize-elite-sheet.mjs` to accept row count + names, produced `survivor/assets/hero-sprites.png` (1536x768, footY 122, matte residual 0). Loaded a dedicated `heroSprites` image and rewrote `drawPlayer` to pick rows by state (idle/run/attack/hit/dash) with timer-driven one-shot frames; added `p.attackT`/`p.hurtT`/`p.dashAnimT` (fed by auto-fire, `triggerPlayerHurtFeedback`, and dash). Exposed `player.heroAnim` and added `debug_player_anim`. Verified with `npm run loop:hero-anim` + attack screenshot. The hero is no longer the old idle/run-only sprite; attack/hit/dash/death now have real frames.

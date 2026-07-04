@@ -61,7 +61,7 @@
 
 **注意**：這張是 6 列，我會用 `normalize-*-sheet.mjs` 改成 12×6、128px 接入主角渲染（比精英的 4 列多，摳圖流程相同）。
 
-## REQ-005 — 終局首領 & Boss 專屬 sheet　　狀態：ready
+## REQ-005 — 終局首領 & Boss 專屬 sheet　　狀態：done（Claude 2026-07-04，終局首領已接入；一般 boss 仍待生）
 
 Boss / 終局首領目前借用 brute sprite 染色。請生專屬圖（做法同前，綠幕 #00ff00、每列12幀、128px、腳底錨點一致）：
 
