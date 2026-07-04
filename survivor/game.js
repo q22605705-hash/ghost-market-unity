@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "final-boss-art-20260704";
+const ASSET_VERSION = "boss-art-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -401,6 +401,7 @@ const ELITE_SHEETS = {
   weaver: { img: new Image(), file: "weaver-sprites.png", anchorY: 116 },
   mirror_lantern: { img: new Image(), file: "mirror_lantern-sprites.png", anchorY: 122 },
   talisman_binder: { img: new Image(), file: "talisman_binder-sprites.png", anchorY: 117 },
+  boss: { img: new Image(), file: "boss-sprites.png", anchorY: 121 },
   final_boss: { img: new Image(), file: "final_boss-sprites.png", anchorY: 127 }
 };
 for (const sheet of Object.values(ELITE_SHEETS)) {
@@ -5290,7 +5291,7 @@ function eliteSheetKey(e) {
 }
 
 function eliteActing(e) {
-  if (e.finalBoss) return Boolean(e.castT > 0 || e.specialCast);
+  if (e.kind === "boss") return Boolean(e.castT > 0 || e.specialCast);
   if (e.kind === "weaver") return Boolean(e.conjureCast);
   if (e.kind === "mirror_lantern") return Boolean(e.mirrorCast);
   if (e.kind === "talisman_binder") return (e.bindPose || 0) > 0;

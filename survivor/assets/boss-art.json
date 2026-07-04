@@ -1,0 +1,27 @@
+{
+  "source": "survivor/assets/incoming/boss/boss-greenscreen.png",
+  "sourceSize": [
+    2172,
+    724
+  ],
+  "bgSample": [
+    2,
+    251,
+    2
+  ],
+  "cols": 12,
+  "rows": 4,
+  "cell": 128,
+  "rowNames": [
+    "idle",
+    "cast",
+    "hit",
+    "death"
+  ],
+  "anchor": {
+    "x": 64,
+    "y": 121
+  },
+  "matteResidualRatio": 0,
+  "placements": 48
+}

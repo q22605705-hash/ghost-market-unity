@@ -921,3 +921,13 @@ Testing
 - Updated cache version to `final-boss-art-20260704`.
 - Verified with `node --check`, `npx.cmd tsc --pretty false`, `npm run loop:final-boss`, and the `loop:smoke` / `loop:hero-anim` / `loop:enemy-summoner` regressions. Cast screenshot confirms the bespoke boss art renders. No console errors or failed requests.
 - Five bespoke sheets now integrated (hero + weaver + mirror_lantern + talisman_binder + final_boss). Next Codex art batch: Batch D UI icons, or a regular-boss sheet.
+
+2026-07-04 regular boss bespoke art integration (Codex handoff BOSS-001)
+
+- Processed the Codex-delivered green-screen regular boss sheet (`survivor/assets/incoming/boss/boss-greenscreen.png`, 2172x724, 12x4).
+- Normalized via `scripts/normalize-elite-sheet.mjs boss 4 idle,cast,hit,death` → `survivor/assets/boss-sprites.png` (1536x512, footY 121, matte residual 0) + `boss-art.json`.
+- Added `boss` to the `ELITE_SHEETS` registry. Because `eliteSheetKey` returns the raw kind for non-final bosses, the regular boss now renders from its bespoke oni-warlord sheet automatically. Generalized `eliteActing` so any `kind:"boss"` (final or regular) uses the cast row while casting.
+- Added `loop:boss`: spawns a non-final boss, confirms it is not the final boss, forces the special cast, and checks the cast is surfaced; captures idle + cast screenshots.
+- Updated cache version to `boss-art-20260704`.
+- Verified with `node --check`, `npx.cmd tsc --pretty false`, `npm run loop:boss`, and the `loop:final-boss` / `loop:smoke` / `loop:elite-enemies` regressions. Cast screenshot confirms the bespoke oni boss renders with its purple cast circle. No console errors or failed requests.
+- Six bespoke sheets now integrated; no enemy or the hero reuses a tinted placeholder any more. Next Codex art batch: Batch D UI icons.

@@ -441,6 +441,27 @@ async function finalBoss(page) {
   };
 }
 
+async function bossFight(page) {
+  // Spawn a regular (non-final) boss and confirm it renders with bespoke art (no failed request).
+  const spawned = JSON.parse(await page.evaluate(() => window.debug_spawn_boss()));
+  if (!spawned.boss || (spawned.boss.count || 0) < 1) {
+    throw new Error(`Regular boss did not spawn: ${JSON.stringify(spawned.boss)}`);
+  }
+  if (spawned.boss.finalBoss) {
+    throw new Error(`Expected a regular boss, got the final boss: ${JSON.stringify(spawned.boss)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-boss-idle.png"), fullPage: true });
+
+  // Force its special cast and confirm the cast state is surfaced (drives the cast row).
+  const cast = JSON.parse(await page.evaluate(() => window.debug_force_enemy_cast("boss", true)));
+  const casting = (cast.castingEnemies || []).find((e) => e.kind === "boss");
+  if (!casting) {
+    throw new Error(`Boss cast not surfaced: ${JSON.stringify(cast.castingEnemies)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-boss-cast.png"), fullPage: true });
+  return { scenario: "boss", bossCount: spawned.boss.count, casting };
+}
+
 const scenarios = {
   smoke,
   "result-damage": resultDamage,
@@ -450,7 +471,8 @@ const scenarios = {
   "enemy-summoner": enemySummoner,
   "elite-enemies": eliteEnemies,
   "hero-anim": heroAnim,
-  "final-boss": finalBoss
+  "final-boss": finalBoss,
+  boss: bossFight
 };
 
 async function main() {

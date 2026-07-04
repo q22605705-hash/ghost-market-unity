@@ -45,6 +45,10 @@ Claude integrated it: added `scripts/normalize-weaver-sheet.mjs` (green-key + 18
 - Anchor intent: bottom-center for grounded frames
 - Handoff: Claude should crop/normalize, remove green matte, verify 48 placements, then integrate into runtime art/metadata. Codex did not edit `survivor/game.js`, scripts, or package files.
 
+## ART-BOSS-001 - Regular boss sprite sheet    status: done (Claude 2026-07-04)
+
+Integrated. Normalized via `scripts/normalize-elite-sheet.mjs boss 4 idle,cast,hit,death` → `survivor/assets/boss-sprites.png` (1536x512, footY 121, matte residual 0). Added `boss` to the `ELITE_SHEETS` registry; since `eliteSheetKey` returns the raw kind for non-final bosses, the regular boss now renders from its bespoke oni-warlord sheet. Generalized `eliteActing` to treat any `kind:"boss"` cast (castT/specialCast) as the cast row. Verified with `npm run loop:boss` (spawns a non-final boss, forces the special, checks the cast) + `npm run loop:final-boss` regression. No boss now reuses a tinted brute.
+
 ## ART-REQ-005 - Final boss sprite sheet    status: done (Claude 2026-07-04)
 
 Integrated. Normalized via `scripts/normalize-elite-sheet.mjs final_boss 4 idle,cast,hit,death` → `survivor/assets/final_boss-sprites.png` (1536x512, footY 127, matte residual 0). Added `final_boss` to the `ELITE_SHEETS` registry and an `eliteSheetKey(e)` helper (final boss has `kind:"boss"` + `finalBoss` flag) so the final boss renders from its bespoke moon-deity sheet with state-driven rows (idle / cast when `castT`/`specialCast` / hit). Verified with `npm run loop:final-boss` (spawns it, forces the 怨月封印 special, checks the cast is surfaced) + idle/cast screenshots. The final boss no longer reuses a tinted brute. (Regular non-final `boss` still tinted — bespoke boss art optional, REQ-005 boss/ folder not yet delivered.)
