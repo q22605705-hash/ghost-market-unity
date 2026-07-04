@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "declutter-20260704";
+const ASSET_VERSION = "hud-clean-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -5137,9 +5137,10 @@ function updateCamera(dt = 1 / 60) {
   const p = state.player || { x: WORLD_W / 2, y: WORLD_H / 2 };
   const targetX = clamp(p.x - W / (2 * VIEW_SCALE), 0, WORLD_W - W / VIEW_SCALE);
   const targetY = clamp(p.y - H / (2 * VIEW_SCALE), 0, WORLD_H - H / VIEW_SCALE);
-  const follow = state.mode === "playing" ? 1 - Math.exp(-dt * 16) : 1;
-  state.camera.x += (targetX - state.camera.x) * follow;
-  state.camera.y += (targetY - state.camera.y) * follow;
+  // Lock the player to screen-centre (a lagging camera made the character
+  // appear to slide around the viewport — the "動畫跑掉" report).
+  state.camera.x = targetX;
+  state.camera.y = targetY;
   if (state.shake > 0 && settingEnabled("screenShake")) {
     state.camera.shakeX = rand(-state.shake, state.shake);
     state.camera.shakeY = rand(-state.shake, state.shake);
@@ -5896,6 +5897,7 @@ function drawHud() {
   if (state.mode === "playing") drawTutorialQuestPanel();
   if (state.mode === "playing") drawVirtualControls();
   text(state.message, state.mode === "playing" ? 224 : 26, H - 28, 16, "#d8e3df");
+  text(`v ${ASSET_VERSION}`, 10, H - 8, 10, "rgba(190, 210, 205, 0.35)");
 }
 
 function drawPlayerStatusIcons(p) {
@@ -5937,7 +5939,12 @@ function drawTutorialQuestPanel() {
 
 function drawThreatWarning() {
   const summary = threatSummary();
-  if (!summary.active && summary.level !== "hit") return;
+  // Only show the full box for a genuine active threat; routine hits just get
+  // the small direction arrows so the panel stops crowding the left side.
+  if (!summary.active) {
+    drawThreatDirectionIndicators(summary);
+    return;
+  }
   const x = 18;
   const y = 184;
   const w = 332;
@@ -6202,6 +6209,7 @@ function drawTutorialHint() {
 }
 
 function drawPhaseBanner(phase) {
+  if (state.milestoneBanner?.t > 0) return; // avoid stacking on the milestone banner
   ctx.save();
   const alert = state.phaseNoticeT > 0;
   ctx.fillStyle = alert ? "rgba(118, 47, 62, 0.78)" : "rgba(5, 10, 13, 0.58)";
