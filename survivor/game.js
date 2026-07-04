@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "ui-icons-hud-20260704";
+const ASSET_VERSION = "enemy-status-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -5510,6 +5510,24 @@ function drawEnemies() {
     ctx.fillRect(s.x - 22 * VIEW_SCALE, s.y - size * 0.9 * VIEW_SCALE, 44 * VIEW_SCALE, 5 * VIEW_SCALE);
     ctx.fillStyle = style.color;
     ctx.fillRect(s.x - 22 * VIEW_SCALE, s.y - size * 0.9 * VIEW_SCALE, 44 * Math.max(0, e.hp / e.maxHp) * VIEW_SCALE, 5 * VIEW_SCALE);
+    drawEnemyStatusIcons(e, s, size);
+  }
+}
+
+function drawEnemyStatusIcons(e, s, size) {
+  const ids = [];
+  if (e.burn > 0) ids.push("burn");
+  if (e.poison > 0) ids.push("poison");
+  if (e.slow > 0) ids.push("slow");
+  if (e.curse > 0) ids.push("curse");
+  if (!ids.length) return;
+  const icon = 18 * VIEW_SCALE;
+  const gap = icon + 1;
+  let ix = s.x - ((ids.length - 1) * gap) / 2;
+  const iy = s.y - size * 0.9 * VIEW_SCALE - icon * 0.75;
+  for (const id of ids) {
+    drawUiIcon(id, ix, iy, icon);
+    ix += gap;
   }
 }
 
@@ -9101,6 +9119,26 @@ window.debug_player_anim = (kind = "attack") => {
   else if (kind === "dash") state.player.dashAnimT = HERO_ANIM.dash;
   draw();
   return window.render_game_to_text();
+};
+
+window.debug_afflict_enemy = () => {
+  if (!state.player) resetGame();
+  if (state.mode !== "playing") state.mode = "playing";
+  let enemy = state.enemies.find((item) => item.kind === "ghoul") || spawnEnemy("ghoul");
+  if (enemy) {
+    enemy.x = clamp(state.player.x + 120, 40, WORLD_W - 40);
+    enemy.y = clamp(state.player.y, 40, WORLD_H - 40);
+    enemy.burn = 2;
+    enemy.poison = 2;
+    enemy.slow = 2;
+    enemy.curse = 2;
+  }
+  draw();
+  return {
+    afflicted: enemy
+      ? { burn: enemy.burn, poison: enemy.poison, slow: enemy.slow, curse: enemy.curse }
+      : null
+  };
 };
 
 window.debug_move_player_to_bind_seal = () => {

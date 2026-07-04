@@ -950,3 +950,11 @@ Testing
   - Home hero preview now renders from the bespoke `heroSprites` idle row (with a slow idle cycle) instead of the old main-sheet sprite; falls back if the sheet has not loaded.
 - Updated cache version to `ui-icons-hud-20260704`.
 - Verified with `node --check`, `npx.cmd tsc --pretty false`, and the `loop:smoke` (home hero + resource icons), `loop:combat-readability`, `loop:upgrade-choice`, `loop:elite-enemies`, and `loop:final-boss` screenshots/regressions. Home menu screenshot confirms the bespoke cat-mage preview and the moon-dust/memory-shard icons. No console errors or failed requests.
+
+2026-07-04 enemy status icons (Claude solo, combat readability)
+
+- Added `drawEnemyStatusIcons`: afflicted enemies now show a small icon strip above their health bar for burn / poison / slow / curse, using the ICONS-001 atlas ids. Improves at-a-glance readability of which debuffs are active on which enemy.
+- Added `debug_afflict_enemy` and a `loop:enemy-status` playtest that applies all four statuses to a ghoul and screenshots the icons.
+- Updated cache version to `enemy-status-20260704`.
+- Verified with `node --check`, `npx.cmd tsc --pretty false`, `npm run loop:enemy-status`, and `npm run loop:smoke`. Screenshot confirms the status icons render above the afflicted enemy. No console errors or failed requests.
+- Backed up: pushed main to origin (github q22605705-hash/ghost-market-unity) after the HUD polish pass; the whole art overhaul + content work is now on GitHub.

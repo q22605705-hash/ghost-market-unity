@@ -18,7 +18,8 @@
     "loop:elite-enemies": "node scripts/playtest-survivor-loop.mjs elite-enemies",
     "loop:hero-anim": "node scripts/playtest-survivor-loop.mjs hero-anim",
     "loop:final-boss": "node scripts/playtest-survivor-loop.mjs final-boss",
-    "loop:boss": "node scripts/playtest-survivor-loop.mjs boss"
+    "loop:boss": "node scripts/playtest-survivor-loop.mjs boss",
+    "loop:enemy-status": "node scripts/playtest-survivor-loop.mjs enemy-status"
   },
   "dependencies": {
     "phaser": "^3.90.0"

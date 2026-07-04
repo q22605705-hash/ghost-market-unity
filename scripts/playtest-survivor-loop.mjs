@@ -472,8 +472,20 @@ const scenarios = {
   "elite-enemies": eliteEnemies,
   "hero-anim": heroAnim,
   "final-boss": finalBoss,
-  boss: bossFight
+  boss: bossFight,
+  "enemy-status": enemyStatus
 };
+
+async function enemyStatus(page) {
+  // Afflict an enemy with all four statuses and confirm the status icons render (no failed request).
+  const res = JSON.parse(await page.evaluate(() => JSON.stringify(window.debug_afflict_enemy())));
+  const a = res.afflicted;
+  if (!a || !(a.burn > 0 && a.poison > 0 && a.slow > 0 && a.curse > 0)) {
+    throw new Error(`Enemy was not afflicted with all statuses: ${JSON.stringify(a)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-enemy-status.png"), fullPage: true });
+  return { scenario: "enemy-status", afflicted: a };
+}
 
 async function main() {
   await fs.mkdir(artifactRoot, { recursive: true });
