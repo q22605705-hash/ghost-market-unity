@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "enemy-status-20260704";
+const ASSET_VERSION = "result-icons-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -433,6 +433,14 @@ function drawUiIcon(id, x, y, size, alpha = 1) {
   ctx.drawImage(uiIcons, cell[0] * c, cell[1] * c, c, c, Math.round(x - size / 2), Math.round(y - size / 2), size, size);
   ctx.restore();
   return true;
+}
+function damageIconId(name = "") {
+  if (/刃|劍|旋/.test(name)) return "blade";
+  if (/召|伙伴|貓靈|符使|鈴|夜蛾/.test(name)) return "summon";
+  const fam = elementNameFromName(name);
+  if (fam !== "通用") return familyIconId(fam);
+  if (name.includes("符")) return "talisman";
+  return null;
 }
 function familyIconId(family = "") {
   if (family.includes("火")) return "fire";
@@ -7638,6 +7646,7 @@ function drawDead() {
     ctx.fillRect(sx, sy, 170, 46);
     text(label, sx + 12, sy + 18, 12, "#a8c8c0");
     text(fitText(value, 140, 16), sx + 12, sy + 38, 16, "#fff4d8");
+    if (label === "月塵") drawUiIcon("moon_dust", sx + 150, sy + 24, 26);
   });
 
   text("下局建議", 324, 430, 20, "#fff4d8");
@@ -7775,7 +7784,9 @@ function drawResultDamageSources(x, y, w, h, summary) {
     const color = i === 0 ? "#b87d23" : i === 1 ? "#25756a" : "#4b8ca4";
     const barW = Math.max(8, Math.round((w - 78) * clamp(row.percent / 100, 0, 1)));
     const percentText = row.percent > 0 ? `${row.percent}%` : row.damage > 0 ? "<1%" : "0%";
-    text(fitText(row.name, 86, 12), x + 12, by, 12, "#263338");
+    const iconId = damageIconId(row.name);
+    const nameX = iconId && drawUiIcon(iconId, x + 21, by - 3, 18) ? x + 34 : x + 12;
+    text(fitText(row.name, nameX === x + 12 ? 86 : 66, 12), nameX, by, 12, "#263338");
     ctx.fillStyle = "rgba(38, 51, 56, 0.16)";
     ctx.fillRect(x + 12, by + 7, w - 78, 7);
     ctx.fillStyle = color;
@@ -7834,17 +7845,18 @@ function drawResultStoryCard(x, y, w, h, scene, story) {
 
 function drawRewardStrip(x, y, summary) {
   const rewards = [
-    ["月塵", `+${summary.moonDust}`],
-    ["Boss", `${summary.runRewards?.bossKills || 0}`],
-    ["精英", `${summary.runRewards?.eliteKills || 0}`],
-    [summary.runType === "garden" ? "最高" : "記憶", summary.runType === "garden" ? summary.bestGarden : `${saveData.memoryFragments.length}/8`]
+    ["月塵", `+${summary.moonDust}`, "moon_dust"],
+    ["Boss", `${summary.runRewards?.bossKills || 0}`, "boss_key"],
+    ["精英", `${summary.runRewards?.eliteKills || 0}`, "summon"],
+    [summary.runType === "garden" ? "最高" : "記憶", summary.runType === "garden" ? summary.bestGarden : `${saveData.memoryFragments.length}/8`, "memory_shard"]
   ];
-  rewards.forEach(([label, value], i) => {
+  rewards.forEach(([label, value, iconId], i) => {
     const rx = x + i * 132;
     ctx.fillStyle = i === 2 && summary.fragment ? "#2d5c55" : "#192126";
     ctx.fillRect(rx, y, 122, 76);
     text(label, rx + 12, y + 23, 14, "#9fd8d0");
     wrap(String(value), rx + 12, y + 45, 98, 14, "#fff4d8");
+    drawUiIcon(iconId, rx + 100, y + 22, 26);
   });
 }
 

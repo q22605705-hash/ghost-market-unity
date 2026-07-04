@@ -958,3 +958,10 @@ Testing
 - Updated cache version to `enemy-status-20260704`.
 - Verified with `node --check`, `npx.cmd tsc --pretty false`, `npm run loop:enemy-status`, and `npm run loop:smoke`. Screenshot confirms the status icons render above the afflicted enemy. No console errors or failed requests.
 - Backed up: pushed main to origin (github q22605705-hash/ghost-market-unity) after the HUD polish pass; the whole art overhaul + content work is now on GitHub.
+
+2026-07-04 result screen icons (Claude solo, finishing polish)
+
+- Added `damageIconId(name)` and put element/blade/summon/talisman icons before each `輸出排行` row in `drawResultDamageSources` (real element runs show fire/water/etc.; debug sources correctly show none).
+- Added reward icons to `drawRewardStrip` (月塵→moon_dust, Boss→boss_key, 精英→summon, 記憶→memory_shard) and a moon_dust icon to the death-screen 月塵 stat cell.
+- Updated cache version to `result-icons-20260704`.
+- Verified with `node --check`, `npx.cmd tsc --pretty false`, and `npm run loop:result-damage`; the result screenshot shows the bespoke hero art plus the reward icons. No console errors or failed requests.
