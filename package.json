@@ -15,7 +15,8 @@
     "loop:combat-readability": "node scripts/playtest-survivor-loop.mjs combat-readability",
     "loop:upgrade-choice": "node scripts/playtest-survivor-loop.mjs upgrade-choice",
     "loop:enemy-summoner": "node scripts/playtest-survivor-loop.mjs enemy-summoner",
-    "loop:elite-enemies": "node scripts/playtest-survivor-loop.mjs elite-enemies"
+    "loop:elite-enemies": "node scripts/playtest-survivor-loop.mjs elite-enemies",
+    "loop:hero-anim": "node scripts/playtest-survivor-loop.mjs hero-anim"
   },
   "dependencies": {
     "phaser": "^3.90.0"

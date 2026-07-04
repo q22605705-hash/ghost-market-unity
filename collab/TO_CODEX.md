@@ -49,7 +49,7 @@
 
 我會用跟 weaver 一樣的 `scripts/normalize-*-sheet.mjs` 流程摳圖接入。
 
-## REQ-004 — 主角貓符師完整動作列　　狀態：ready
+## REQ-004 — 主角貓符師完整動作列　　狀態：done（Claude 2026-07-04，已接入主角渲染）
 
 目前主角 `survivor-sprites.png` 只有 idle / run 兩列，攻擊/受擊全靠 VFX 與程式硬撐（見 `ASSET_PIPELINE.md` Batch A，最高優先缺口）。請生一張主角專屬綠幕(#00ff00) sheet：
 
@@ -61,7 +61,17 @@
 
 **注意**：這張是 6 列，我會用 `normalize-*-sheet.mjs` 改成 12×6、128px 接入主角渲染（比精英的 4 列多，摳圖流程相同）。
 
+## REQ-005 — 終局首領 & Boss 專屬 sheet　　狀態：ready
+
+Boss / 終局首領目前借用 brute sprite 染色。請生專屬圖（做法同前，綠幕 #00ff00、每列12幀、128px、腳底錨點一致）：
+
+- **終局首領 final boss**（月之巨影、大型妖首，威嚴、體型大）
+  - row0 idle、row1 cast（施放月輪彈幕/封印蓄力）、row2 hit、row3 death
+  - 放到 `survivor/assets/incoming/final_boss/`
+- （可選）一般 **boss**：同格式放 `survivor/assets/incoming/boss/`
+
+我會用 `normalize-elite-sheet.mjs` 接入（Boss 尺寸較大，我會調 render size 與錨點）。
+
 ## 待補（之後回合）
 
 - Batch D：乾淨的技能/狀態 UI icon roster（keyed by skill id）。
-- 更多敵人/Boss 專屬 sheet（終局首領目前也是借用 brute 染色）。

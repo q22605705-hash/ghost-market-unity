@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "elite-art-20260703";
+const ASSET_VERSION = "hero-art-20260703";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -405,6 +405,13 @@ const ELITE_SHEETS = {
 for (const sheet of Object.values(ELITE_SHEETS)) {
   sheet.img.src = `./assets/${sheet.file}?v=${ASSET_VERSION}`;
 }
+
+// Bespoke hero sheet (Codex art): 12x6 128px cells.
+const heroSprites = new Image();
+heroSprites.src = `./assets/hero-sprites.png?v=${ASSET_VERSION}`;
+const HERO_ROWS = { idle: 0, run: 1, attack: 2, hit: 3, dash: 4, death: 5 };
+const HERO_ANCHOR_Y = 122;
+const HERO_ANIM = { attack: 0.26, hit: 0.3, dash: 0.28 };
 
 const VFX_CELL = 160;
 const ICON_CELL = 128;
@@ -4250,6 +4257,7 @@ function updatePlayer(dt) {
     p.y += dashY * 145;
     p.invuln = 0.35;
     p.dashT = state.stats.dashCooldown;
+    p.dashAnimT = HERO_ANIM.dash;
     state.shake = 3;
   }
   touchControl.dashQueued = false;
@@ -4259,10 +4267,14 @@ function updatePlayer(dt) {
   if (state.tutorialProgress) state.tutorialProgress.moved += Math.hypot(p.x - oldX, p.y - oldY);
   p.invuln = Math.max(0, p.invuln - dt);
   p.dashT = Math.max(0, p.dashT - dt);
+  p.attackT = Math.max(0, (p.attackT || 0) - dt);
+  p.dashAnimT = Math.max(0, (p.dashAnimT || 0) - dt);
+  p.hurtT = Math.max(0, (p.hurtT || 0) - dt);
   p.hp = Math.min(state.stats.maxHp, p.hp);
   p.shootT -= dt;
   if (p.shootT <= 0) {
     fireAtNearest();
+    p.attackT = HERO_ANIM.attack;
     p.shootT = state.stats.fireRate * (state.stats.bloodFrenzy > 0 ? 0.72 : 1);
   }
   p.anim += dt * (moving ? 12 : 6);
@@ -4669,6 +4681,7 @@ function triggerPlayerHurtFeedback(damage = 0, source = "未知傷害") {
   state.hurtFlash = 0.82;
   state.shake = Math.max(state.shake, damage >= 20 ? 10 : 7);
   state.lastHit = { source, damage, t: 2.2 };
+  if (state.player) state.player.hurtT = HERO_ANIM.hit;
   sfx("hurt");
   showHint("hurt");
 }
@@ -5291,14 +5304,29 @@ function drawEliteSprite(kind, row, frame, x, y, size, flip, alpha = 1) {
   ctx.restore();
 }
 
+function heroSheetReady() {
+  return heroSprites.complete && heroSprites.naturalWidth > 0;
+}
+
+function drawHeroSprite(row, frame, x, y, size, flip, alpha = 1) {
+  const cell = 128;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(Math.round(x), Math.round(y));
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(heroSprites, (frame % 12) * cell, row * cell, cell, cell, -(64 / cell) * size, -(HERO_ANCHOR_Y / cell) * size, size, size);
+  ctx.restore();
+}
+
+function heroFrameFromTimer(timerT, duration) {
+  return Math.min(11, Math.max(0, Math.floor((1 - timerT / duration) * 12)));
+}
+
 function drawPlayer() {
   const p = state.player;
   const s = worldToScreen(p.x, p.y);
   const moving = Math.abs(p.vx) + Math.abs(p.vy) > 1;
-  const row = moving ? ROW.heroRun : ROW.heroIdle;
   const alpha = p.invuln > 0 && Math.floor(performance.now() / 70) % 2 === 0 ? 0.55 : 1;
-  const frame = Math.floor(p.anim) % 12;
-  const anchor = resolveFrameAnchor(row, frame, DEFAULT_ANCHOR);
   if (state.stats.element) {
     ctx.save();
     ctx.globalAlpha = 0.18;
@@ -5308,9 +5336,31 @@ function drawPlayer() {
     ctx.fill();
     ctx.restore();
   }
-  const flip = row === ROW.heroRun ? p.facing < 0 : p.facing > 0;
-  drawSprite(row, frame, s.x, s.y, 116 * VIEW_SCALE, flip, 0, alpha, anchor.x, anchor.y);
-  drawSummonCompanion(frame);
+  const animFrame = Math.floor(p.anim) % 12;
+  if (heroSheetReady()) {
+    let row;
+    let frame;
+    if ((p.hurtT || 0) > 0) {
+      row = HERO_ROWS.hit;
+      frame = heroFrameFromTimer(p.hurtT, HERO_ANIM.hit);
+    } else if ((p.dashAnimT || 0) > 0) {
+      row = HERO_ROWS.dash;
+      frame = heroFrameFromTimer(p.dashAnimT, HERO_ANIM.dash);
+    } else if ((p.attackT || 0) > 0) {
+      row = HERO_ROWS.attack;
+      frame = heroFrameFromTimer(p.attackT, HERO_ANIM.attack);
+    } else {
+      row = moving ? HERO_ROWS.run : HERO_ROWS.idle;
+      frame = animFrame;
+    }
+    drawHeroSprite(row, frame, s.x, s.y, 120 * VIEW_SCALE, p.facing < 0, alpha);
+  } else {
+    const row = moving ? ROW.heroRun : ROW.heroIdle;
+    const anchor = resolveFrameAnchor(row, animFrame, DEFAULT_ANCHOR);
+    const flip = row === ROW.heroRun ? p.facing < 0 : p.facing > 0;
+    drawSprite(row, animFrame, s.x, s.y, 116 * VIEW_SCALE, flip, 0, alpha, anchor.x, anchor.y);
+  }
+  drawSummonCompanion(animFrame);
 }
 
 function drawSummonCompanion(frame) {
@@ -8254,7 +8304,7 @@ window.render_game_to_text = () => JSON.stringify({
     subtitle: state.milestoneBanner.subtitle,
     t: Number(state.milestoneBanner.t.toFixed(2))
   } : null,
-  player: state.player ? { x: Math.round(state.player.x), y: Math.round(state.player.y), hp: Math.round(state.player.hp), maxHp: Math.round(state.stats.maxHp), hpRatio: Number((state.player.hp / Math.max(1, state.stats.maxHp)).toFixed(2)), hurtFlash: Number(state.hurtFlash.toFixed(2)), lowHp: state.player.hp / Math.max(1, state.stats.maxHp) < 0.32, level: state.level, facing: state.player.facing } : null,
+  player: state.player ? { x: Math.round(state.player.x), y: Math.round(state.player.y), hp: Math.round(state.player.hp), maxHp: Math.round(state.stats.maxHp), hpRatio: Number((state.player.hp / Math.max(1, state.stats.maxHp)).toFixed(2)), hurtFlash: Number(state.hurtFlash.toFixed(2)), lowHp: state.player.hp / Math.max(1, state.stats.maxHp) < 0.32, level: state.level, facing: state.player.facing, heroAnim: { attack: Number((state.player.attackT || 0).toFixed(2)), hit: Number((state.player.hurtT || 0).toFixed(2)), dash: Number((state.player.dashAnimT || 0).toFixed(2)) } } : null,
   enemies: state.enemies.length,
   enemyKinds: state.enemies.reduce((counts, enemy) => {
     counts[enemy.kind] = (counts[enemy.kind] || 0) + 1;
@@ -8983,6 +9033,16 @@ window.debug_kill_enemy_kind = (kind = "bomber") => {
   if (!state.player) resetGame();
   const enemy = state.enemies.find((item) => item.kind === kind);
   if (enemy) damageEnemy(enemy, enemy.hp + 999, 0, `Debug 擊殺：${kind}`);
+  draw();
+  return window.render_game_to_text();
+};
+
+window.debug_player_anim = (kind = "attack") => {
+  if (!state.player) resetGame();
+  if (state.mode !== "playing") state.mode = "playing";
+  if (kind === "attack") state.player.attackT = HERO_ANIM.attack;
+  else if (kind === "hit") state.player.hurtT = HERO_ANIM.hit;
+  else if (kind === "dash") state.player.dashAnimT = HERO_ANIM.dash;
   draw();
   return window.render_game_to_text();
 };

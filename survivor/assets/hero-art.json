@@ -1,0 +1,29 @@
+{
+  "source": "survivor/assets/incoming/hero/hero-greenscreen.png",
+  "sourceSize": [
+    1774,
+    887
+  ],
+  "bgSample": [
+    5,
+    249,
+    2
+  ],
+  "cols": 12,
+  "rows": 6,
+  "cell": 128,
+  "rowNames": [
+    "idle",
+    "run",
+    "attack",
+    "hit",
+    "dash",
+    "death"
+  ],
+  "anchor": {
+    "x": 64,
+    "y": 122
+  },
+  "matteResidualRatio": 0,
+  "placements": 72
+}

@@ -1,18 +1,19 @@
 // Normalize a Codex-delivered elite green-screen source sheet into a runtime
 // 12 x 4, 128px-cell sheet with the green matte removed and a measured foot anchor.
 //
-// Usage: node scripts/normalize-elite-sheet.mjs <kind>
-//   reads  survivor/assets/incoming/<kind>/<kind>-greenscreen.png (12x4 grid, any square cell)
-//   writes survivor/assets/<kind>-sprites.png (1536 x 512) + survivor/assets/<kind>-art.json
+// Usage: node scripts/normalize-elite-sheet.mjs <kind> [rows] [comma,row,names]
+//   reads  survivor/assets/incoming/<kind>/<kind>-greenscreen.png (12 cols x <rows>, any square cell)
+//   writes survivor/assets/<kind>-sprites.png (1536 x rows*128) + survivor/assets/<kind>-art.json
 //
-// Rows are idle / action / hit / death (action = conjure|cast|seal per elite).
+// Default rows are idle / action / hit / death (elites). Pass rows + names for
+// other sheets, e.g. hero: `node scripts/normalize-elite-sheet.mjs hero 6 idle,run,attack,hit,dash,death`.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
 
 const kind = process.argv[2];
-if (!kind) throw new Error("Usage: node scripts/normalize-elite-sheet.mjs <kind>");
+if (!kind) throw new Error("Usage: node scripts/normalize-elite-sheet.mjs <kind> [rows] [names]");
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const srcPath = path.join(repoRoot, `survivor/assets/incoming/${kind}/${kind}-greenscreen.png`);
@@ -20,9 +21,11 @@ const outPng = path.join(repoRoot, `survivor/assets/${kind}-sprites.png`);
 const outJson = path.join(repoRoot, `survivor/assets/${kind}-art.json`);
 
 const COLS = 12;
-const ROWS = 4;
+const ROWS = Number(process.argv[3]) || 4;
 const CELL = 128;
-const ROW_NAMES = ["idle", "action", "hit", "death"];
+const ROW_NAMES = process.argv[4]
+  ? process.argv[4].split(",")
+  : ["idle", "action", "hit", "death"];
 
 const src = PNG.sync.read(fs.readFileSync(srcPath));
 const srcCellW = Math.floor(src.width / COLS);

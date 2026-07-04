@@ -376,6 +376,45 @@ async function eliteEnemies(page) {
   };
 }
 
+async function heroAnim(page) {
+  // Confirm the bespoke hero sheet loads (no failed request) and each action row is reachable.
+  const start = JSON.parse(await page.evaluate(() => window.debug_spawn_enemy("ghoul", 3, true)));
+  if (!start.player) throw new Error("No player after starting a run");
+  if (!start.player.heroAnim) throw new Error(`Player state is missing heroAnim: ${JSON.stringify(start.player)}`);
+
+  const attack = JSON.parse(await page.evaluate(() => window.debug_player_anim("attack")));
+  if ((attack.player.heroAnim.attack || 0) <= 0) {
+    throw new Error(`Attack animation did not trigger: ${JSON.stringify(attack.player.heroAnim)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-hero-anim-attack.png"), fullPage: true });
+
+  const hit = JSON.parse(await page.evaluate(() => window.debug_player_anim("hit")));
+  if ((hit.player.heroAnim.hit || 0) <= 0) {
+    throw new Error(`Hit animation did not trigger: ${JSON.stringify(hit.player.heroAnim)}`);
+  }
+
+  const dash = JSON.parse(await page.evaluate(() => window.debug_player_anim("dash")));
+  if ((dash.player.heroAnim.dash || 0) <= 0) {
+    throw new Error(`Dash animation did not trigger: ${JSON.stringify(dash.player.heroAnim)}`);
+  }
+
+  // The one-shot hit/dash timers should decay back toward idle after time passes
+  // (attack legitimately re-arms while the player keeps auto-firing at nearby enemies).
+  await page.evaluate(() => window.advanceTime(500));
+  const settled = JSON.parse(await page.evaluate(() => window.render_game_to_text()));
+  if ((settled.player.heroAnim.hit || 0) > 0 || (settled.player.heroAnim.dash || 0) > 0) {
+    throw new Error(`Hero one-shot timers did not decay: ${JSON.stringify(settled.player.heroAnim)}`);
+  }
+  await page.screenshot({ path: path.join(artifactRoot, "loop-hero-anim-idle.png"), fullPage: true });
+  return {
+    scenario: "hero-anim",
+    attack: attack.player.heroAnim.attack,
+    hit: hit.player.heroAnim.hit,
+    dash: dash.player.heroAnim.dash,
+    settled: settled.player.heroAnim
+  };
+}
+
 const scenarios = {
   smoke,
   "result-damage": resultDamage,
@@ -383,7 +422,8 @@ const scenarios = {
   "combat-readability": combatReadability,
   "upgrade-choice": upgradeChoice,
   "enemy-summoner": enemySummoner,
-  "elite-enemies": eliteEnemies
+  "elite-enemies": eliteEnemies,
+  "hero-anim": heroAnim
 };
 
 async function main() {

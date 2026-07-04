@@ -900,3 +900,14 @@ Testing
 - Bumped elite on-screen sizes for presence and updated cache version to `elite-art-20260703`.
 - Verified with `node --check survivor/game.js`, `npm run loop:elite-enemies`, `npm run loop:enemy-summoner`, and `npm run loop:smoke`. Mirror-lantern telegraph screenshot confirms the bespoke lantern art (not a tinted mage) renders with the offset telegraph. No console errors or failed requests.
 - Queued REQ-004 (hero full action sheet, Batch A) as the next Codex art batch.
+
+2026-07-04 hero full action sheet integration (Codex handoff REQ-004)
+
+- Processed the Codex-delivered green-screen hero sheet (`survivor/assets/incoming/hero/hero-greenscreen.png`, 1774x887, 12x6).
+- Generalized `scripts/normalize-elite-sheet.mjs` to accept a row count + row names (`node scripts/normalize-elite-sheet.mjs hero 6 idle,run,attack,hit,dash,death`); produced `survivor/assets/hero-sprites.png` (1536x768, footY 122, matte residual 0) + `hero-art.json`.
+- Loaded a dedicated `heroSprites` image and rewrote `drawPlayer` to render from it with state-driven rows (idle/run/attack/hit/dash); action rows use timer-driven one-shot frames. Added `p.attackT` (set on auto-fire), `p.hurtT` (set in `triggerPlayerHurtFeedback`), and `p.dashAnimT` (set on dash), all decayed in `updatePlayer`. Kept the old main-sheet hero rows as a fallback if the bespoke sheet has not loaded.
+- Exposed `player.heroAnim` in `render_game_to_text` and added `debug_player_anim(kind)` for deterministic QA.
+- Added `loop:hero-anim`: asserts the hero sheet loads, each action row (attack/hit/dash) triggers, and the one-shot hit/dash timers decay back to idle (attack legitimately persists while auto-firing).
+- Updated cache version to `hero-art-20260703`.
+- Verified with `node --check` (game.js + harness), `npx.cmd tsc --pretty false`, `npm run loop:hero-anim`, and the `loop:smoke` / `loop:combat-readability` / `loop:elite-enemies` regressions. Attack-frame screenshot confirms the bespoke cat-mage art renders. No console errors or failed requests.
+- The player now has real attack/hit/dash/death animation instead of idle/run-only + VFX. Queued REQ-005 (final boss / boss bespoke sheets) as the next Codex art batch.
