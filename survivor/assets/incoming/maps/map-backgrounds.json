@@ -1,0 +1,28 @@
+{
+  "request": "REQ-006",
+  "generatedBy": "Codex image lane using GPT image generation",
+  "sourceSize": {
+    "width": 1254,
+    "height": 1254
+  },
+  "deliveredSize": {
+    "width": 1024,
+    "height": 1024
+  },
+  "backgrounds": [
+    {
+      "id": "moonlit-garden",
+      "file": "moonlit-garden.png",
+      "theme": "moonlit garden",
+      "palette": ["cool blue", "teal", "jade", "muted stone gray", "pale petals"],
+      "notes": "Opaque square map plate for moon garden / mystical run visuals."
+    },
+    {
+      "id": "crimson-shrine",
+      "file": "crimson-shrine.png",
+      "theme": "crimson ruined shrine",
+      "palette": ["dark red", "burgundy", "warm ochre", "charred gray", "pale talisman accents"],
+      "notes": "Opaque square map plate for frenzy / cursed shrine visuals."
+    }
+  ]
+}
