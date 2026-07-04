@@ -931,3 +931,13 @@ Testing
 - Updated cache version to `boss-art-20260704`.
 - Verified with `node --check`, `npx.cmd tsc --pretty false`, `npm run loop:boss`, and the `loop:final-boss` / `loop:smoke` / `loop:elite-enemies` regressions. Cast screenshot confirms the bespoke oni boss renders with its purple cast circle. No console errors or failed requests.
 - Six bespoke sheets now integrated; no enemy or the hero reuses a tinted placeholder any more. Next Codex art batch: Batch D UI icons.
+
+2026-07-04 UI icon roster integration (Codex handoff Batch D / ICONS-001)
+
+- Processed the Codex-delivered green-screen UI icon roster (`survivor/assets/incoming/icons/ui-icons-roster-greenscreen.png`, 1536x1024, 6x4 @256px, 24 semantic icons with an `icon-roster.json` id map).
+- Added `scripts/normalize-icons.mjs` (chroma key + green despill + 256px->128px resample per cell; tuned the green test to keep teal/cyan icon art) → `survivor/assets/ui-icons.png` (768x512, matte residual 0) + `ui-icons.json` (id → [col,row]).
+- Added a hardcoded `UI_ICONS` id→cell map (24 ids: 7 elements + health/shield/speed/magnet/summon/moon_dust/memory_shard/boss_key/reroll/revive/blade/talisman/burn/slow/curse/armor/pickup_range), a `drawUiIcon(id, x, y, size)` helper, and a `familyIconId(family)` mapper (elements + Melee→blade / Utility→speed / Survive→shield / else talisman).
+- Wired a family/element icon onto every level-up card (next to the family pill) as the first visible use; the 24 ids are runtime keys ready for more placements (currency, status effects, HUD).
+- Updated cache version to `ui-icons-20260704`.
+- Verified with `node --check`, `npx.cmd tsc --pretty false`, `npm run loop:upgrade-choice` (screenshot shows fire/water element icons + the Utility speed icon on the cards, atlas loads with no failed request), and the `loop:smoke` / `loop:pause-info` regressions. No console errors.
+- This completes the queued Codex art batches (hero + 3 elites + 2 bosses + UI icons). No character or the hero uses a placeholder; icons are id-keyed for future UI polish.

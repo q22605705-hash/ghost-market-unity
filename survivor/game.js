@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "boss-art-20260704";
+const ASSET_VERSION = "ui-icons-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -414,6 +414,39 @@ heroSprites.src = `./assets/hero-sprites.png?v=${ASSET_VERSION}`;
 const HERO_ROWS = { idle: 0, run: 1, attack: 2, hit: 3, dash: 4, death: 5 };
 const HERO_ANCHOR_Y = 122;
 const HERO_ANIM = { attack: 0.26, hit: 0.3, dash: 0.28 };
+
+// Bespoke UI icon roster (Codex art): 6x4 128px cells, id -> [col, row].
+const uiIcons = new Image();
+uiIcons.src = `./assets/ui-icons.png?v=${ASSET_VERSION}`;
+const UI_ICONS = {
+  fire: [0, 0], water: [1, 0], lightning: [2, 0], poison: [3, 0], shadow: [4, 0], holy: [5, 0],
+  wind: [0, 1], health: [1, 1], shield: [2, 1], speed: [3, 1], magnet: [4, 1], summon: [5, 1],
+  moon_dust: [0, 2], memory_shard: [1, 2], boss_key: [2, 2], reroll: [3, 2], revive: [4, 2], blade: [5, 2],
+  talisman: [0, 3], burn: [1, 3], slow: [2, 3], curse: [3, 3], armor: [4, 3], pickup_range: [5, 3]
+};
+function drawUiIcon(id, x, y, size, alpha = 1) {
+  const cell = UI_ICONS[id];
+  if (!cell || !(uiIcons.complete && uiIcons.naturalWidth > 0)) return false;
+  const c = 128;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(uiIcons, cell[0] * c, cell[1] * c, c, c, Math.round(x - size / 2), Math.round(y - size / 2), size, size);
+  ctx.restore();
+  return true;
+}
+function familyIconId(family = "") {
+  if (family.includes("火")) return "fire";
+  if (family.includes("水")) return "water";
+  if (family.includes("雷")) return "lightning";
+  if (family.includes("毒")) return "poison";
+  if (family.includes("影")) return "shadow";
+  if (family.includes("聖")) return "holy";
+  if (family.includes("風")) return "wind";
+  if (family === "Melee") return "blade";
+  if (family === "Utility") return "speed";
+  if (family === "Survive") return "shield";
+  return "talisman";
+}
 
 const VFX_CELL = 160;
 const ICON_CELL = 128;
@@ -7800,6 +7833,7 @@ function card(x, y, w, h, opt, n, recommended = false) {
     pill(x + w - 104, y + 58, 72, 22, "推薦", "#d6a33f");
   }
   center(`${n}`, x + 28, y + 34, 24, "#ffe8ad");
+  drawUiIcon(familyIconId(upgradeFamily(opt)), x + w - 170, y + 37, 30);
   pill(x + w - 154, y + 24, 66, 26, upgradeFamily(opt), "#647b79");
   pill(x + w - 82, y + 24, 58, 26, upgradeType(opt), upgradeType(opt) === "ACTIVE" ? "#bb4f45" : "#4b8ca4");
   pill(x + 62, y + 24, 82, 26, intent.label, intent.color);

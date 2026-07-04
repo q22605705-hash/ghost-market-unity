@@ -45,6 +45,10 @@ Claude integrated it: added `scripts/normalize-weaver-sheet.mjs` (green-key + 18
 - Anchor intent: bottom-center for grounded frames
 - Handoff: Claude should crop/normalize, remove green matte, verify 48 placements, then integrate into runtime art/metadata. Codex did not edit `survivor/game.js`, scripts, or package files.
 
+## ART-ICONS-001 - UI icon roster    status: done (Claude 2026-07-04)
+
+Integrated. Added `scripts/normalize-icons.mjs` (chroma key + 256px->128px resample per 6x4 cell, teal/cyan art preserved) → `survivor/assets/ui-icons.png` (768x512, matte residual 0) + `ui-icons.json`. Added a hardcoded `UI_ICONS` id→[col,row] map, a `drawUiIcon(id, x, y, size)` helper, and a `familyIconId(family)` mapper. Wired a family/element icon onto every level-up card (next to the family pill). Verified with `npm run loop:upgrade-choice` screenshot — fire/water element icons and the Utility speed icon render on the cards; no failed request for the atlas. The 24 ids are runtime keys for future placements (currency, status, HUD).
+
 ## ART-BOSS-001 - Regular boss sprite sheet    status: done (Claude 2026-07-04)
 
 Integrated. Normalized via `scripts/normalize-elite-sheet.mjs boss 4 idle,cast,hit,death` → `survivor/assets/boss-sprites.png` (1536x512, footY 121, matte residual 0). Added `boss` to the `ELITE_SHEETS` registry; since `eliteSheetKey` returns the raw kind for non-final bosses, the regular boss now renders from its bespoke oni-warlord sheet. Generalized `eliteActing` to treat any `kind:"boss"` cast (castT/specialCast) as the cast row. Verified with `npm run loop:boss` (spawns a non-final boss, forces the special, checks the cast) + `npm run loop:final-boss` regression. No boss now reuses a tinted brute.
