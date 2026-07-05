@@ -982,3 +982,10 @@ Testing
   - 0bc0dc1: camera now locks the player to screen-centre — the lagging follow made the character slide around the viewport, which was the visible "動畫跑掉". Added a faint bottom-left build stamp.
   - b2f008a: threat arrow only points at offscreen dangers (smaller, translucent); threat box only for danger-level events; de-flaked loop:elite-enemies.
 - Verification: diag-play/diag-hero/diag-run/diag-session/diag-natural real-input playtests; run montage confirms the hero stays centred; full-session and natural-pacing runs show a clean mid-fight view; no console errors; loops smoke/pause-info/combat-readability/upgrade-choice/boss/final-boss green and elite-enemies 3x green.
+
+2026-07-05 final art unification (Codex handoffs REQ-006/007/008/009 + fixes)
+
+- Integrated the last Codex batches: per-mode battlefield plates (培育/狂潮/月庭 each has its own map), four summon companions (panel + in-game with glow), and bespoke sheets for skitter/bomber/warden and finally ghoul/mage/brute.
+- Player-reported bugs fixed along the way: feet-anchored per-frame re-alignment, similar-frame chain + fade-over animation stabilization, camera locked to the player, HUD/menu declutter (tab panels now full-screen modal with click guards), threat UI quieted, shop/equipment/summon panel art.
+- Every character, enemy, boss, summon, icon, and battlefield in the game now uses bespoke generated art — no tinted or first-generation placeholders remain.
+- Final verification: npx tsc clean and all 11 playtest loops green (smoke, hero-anim, enemy-summoner, elite-enemies, boss, final-boss, enemy-status, combat-readability, pause-info, upgrade-choice, result-damage).

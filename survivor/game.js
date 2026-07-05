@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "companion-glow-20260705";
+const ASSET_VERSION = "all-enemies-20260705";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -412,6 +412,9 @@ const ELITE_SHEETS = {
   skitter: { img: new Image(), file: "skitter-sprites.png", anchorY: 120 },
   bomber: { img: new Image(), file: "bomber-sprites.png", anchorY: 120 },
   warden: { img: new Image(), file: "warden-sprites.png", anchorY: 120 },
+  ghoul: { img: new Image(), file: "ghoul-sprites.png", anchorY: 120 },
+  mage: { img: new Image(), file: "mage-sprites.png", anchorY: 120 },
+  brute: { img: new Image(), file: "brute-sprites.png", anchorY: 120 },
   boss: { img: new Image(), file: "boss-sprites.png", anchorY: 120 },
   final_boss: { img: new Image(), file: "final_boss-sprites.png", anchorY: 120 }
 };
@@ -5386,6 +5389,7 @@ function eliteActing(e) {
   if (e.kind === "skitter") return Boolean(e.rushing);
   if (e.kind === "bomber") return Boolean(e.arming);
   if (e.kind === "warden") return Boolean(e.guarding);
+  if (e.kind === "mage") return e.castT > 0;
   return false;
 }
 
