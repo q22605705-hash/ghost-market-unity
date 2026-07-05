@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "summons-whole-20260706";
+const ASSET_VERSION = "no-ghost-20260706";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -4352,7 +4352,7 @@ function updatePlayer(dt) {
     p.attackT = HERO_ANIM.attack;
     p.shootT = state.stats.fireRate * (state.stats.bloodFrenzy > 0 ? 0.72 : 1);
   }
-  p.anim += dt * (moving ? 12 : 6);
+  p.anim += dt * (moving ? 8 : 4);
   updateOrbitBlades(dt);
 }
 
@@ -4765,7 +4765,7 @@ function updateEnemies(dt) {
   const p = state.player;
   applyWardenAuras();
   for (const e of [...state.enemies]) {
-    e.anim += dt * 9;
+    e.anim += dt * 6;
     e.hit = Math.max(0, e.hit - dt);
     if (e.finalBoss) updateFinalBossPhaseBreaks(e);
     if (e.burn > 0) {
@@ -5455,13 +5455,9 @@ function drawPlayer() {
       row = moving ? HERO_ROWS.run : HERO_ROWS.idle;
       frame = animFrame;
     }
+    // No cross-frame fading: overlapping two poses reads as ghosting/double
+    // exposure on the character. Stabilized rows step cleanly on their own.
     drawHeroSprite(row, frame, s.x, s.y, 120 * VIEW_SCALE, p.facing < 0, alpha);
-    if (row === HERO_ROWS.run || row === HERO_ROWS.idle) {
-      // Fade the next frame in over the current one so loop steps morph
-      // instead of hard-cutting (the GPT frames are not a true cycle).
-      const t = p.anim % 1;
-      if (t > 0.15) drawHeroSprite(row, (frame + 1) % 12, s.x, s.y, 120 * VIEW_SCALE, p.facing < 0, alpha * t);
-    }
   } else {
     const row = moving ? ROW.heroRun : ROW.heroIdle;
     const anchor = resolveFrameAnchor(row, animFrame, DEFAULT_ANCHOR);
@@ -5493,8 +5489,7 @@ function drawSummonCompanion(frame) {
   ctx.fill();
   ctx.globalAlpha = 1;
   if (drawSummonSprite(summon.id, sFrame, sx, sy, 52 * pulse * VIEW_SCALE)) {
-    const ft = animT % 1;
-    if (ft > 0.15) drawSummonSprite(summon.id, (sFrame + 1) % 12, sx, sy, 52 * pulse * VIEW_SCALE, ft);
+    // single clean frame per step — cross-fading two poses reads as ghosting
   } else {
     ctx.globalAlpha = 0.92;
     ctx.fillStyle = summon.color;
@@ -5564,10 +5559,6 @@ function drawEnemies() {
       const flip = e.x > state.player.x;
       if (e.hit > 0) drawEliteSprite(sheetKey, wRow, frame, s.x, s.y, (size + 8) * VIEW_SCALE, flip, 0.45);
       drawEliteSprite(sheetKey, wRow, frame, s.x, s.y, size * VIEW_SCALE, flip, style.alpha);
-      if (wRow === ELITE_ROWS.idle) {
-        const t = e.anim % 1;
-        if (t > 0.15) drawEliteSprite(sheetKey, wRow, (frame + 1) % 12, s.x, s.y, size * VIEW_SCALE, flip, style.alpha * t);
-      }
     } else {
       if (e.hit > 0) drawSprite(row, frame, s.x, s.y, (size + 8) * VIEW_SCALE, e.x > state.player.x, 0, 0.45, anchor.x, anchor.y);
       drawSprite(row, frame, s.x, s.y, size * VIEW_SCALE, e.x > state.player.x, 0, style.alpha, anchor.x, anchor.y);
