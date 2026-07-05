@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "mode-maps-20260705";
+const ASSET_VERSION = "companion-glow-20260705";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -5478,6 +5478,16 @@ function drawSummonCompanion(frame) {
   ctx.save();
   const animT = state.time * 5;
   const sFrame = Math.floor(animT) % 12;
+  // Soft glow under the sprite so dark companions stay readable on dark floors.
+  const glow = ctx.createRadialGradient(sx, sy, 2, sx, sy, 26 * pulse * VIEW_SCALE);
+  glow.addColorStop(0, summon.color);
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.globalAlpha = 0.34;
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(sx, sy, 26 * pulse * VIEW_SCALE, 0, TWO_PI);
+  ctx.fill();
+  ctx.globalAlpha = 1;
   if (drawSummonSprite(summon.id, sFrame, sx, sy, 52 * pulse * VIEW_SCALE)) {
     const ft = animT % 1;
     if (ft > 0.15) drawSummonSprite(summon.id, (sFrame + 1) % 12, sx, sy, 52 * pulse * VIEW_SCALE, ft);
