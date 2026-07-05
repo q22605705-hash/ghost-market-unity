@@ -148,7 +148,11 @@ function frameDiff(a, b) {
   }
   return count ? diff / count : 0;
 }
-const LOOP_ROWS = new Set(["idle", "run"]);
+// Stabilize every repeatedly-played row. The hero auto-attacks every ~0.4s and
+// enemies cycle their action rows continuously, so incoherent GPT frames in
+// attack/hit/dash/action strobe just as badly as idle did. Only death rows
+// keep their raw order (a genuine one-shot dissolve progression).
+const LOOP_ROWS = new Set(["idle", "run", "attack", "hit", "dash", "action"]);
 const stabilized = {};
 for (let r = 0; r < ROWS; r++) {
   if (!CENTER_MODE && !LOOP_ROWS.has(ROW_NAMES[r])) continue;
@@ -160,8 +164,11 @@ for (let r = 0; r < ROWS; r++) {
     const total = D[i].reduce((s, v) => s + v, 0);
     if (total < best) { best = total; medoid = i; }
   }
-  // Greedy nearest-neighbour chain: always keep at least 3 frames so the loop
-  // stays alive, then extend up to 5 while hops stay under 18% diff.
+  // Greedy nearest-neighbour chain. Idle/run must stay alive (min 3 frames);
+  // gesture rows (attack/hit/dash/action) may collapse to a single stable pose
+  // when no mutually-similar frames exist — the VFX carry the action feel, and
+  // a static pose beats strobing through unrelated drawings.
+  const minFrames = ROW_NAMES[r] === "idle" || ROW_NAMES[r] === "run" ? 3 : 1;
   const chain = [medoid];
   const used = new Set(chain);
   while (chain.length < 5) {
@@ -169,7 +176,7 @@ for (let r = 0; r < ROWS; r++) {
     let next = -1, nd = Infinity;
     for (let i = 0; i < COLS; i++) if (!used.has(i) && D[last][i] < nd) { nd = D[last][i]; next = i; }
     if (next < 0) break;
-    if (chain.length >= 3 && nd > 0.18) break;
+    if (chain.length >= minFrames && nd > 0.18) break;
     chain.push(next);
     used.add(next);
   }

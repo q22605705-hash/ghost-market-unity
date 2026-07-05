@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "all-enemies-20260705";
+const ASSET_VERSION = "stable-anim-20260706";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -6144,9 +6144,15 @@ function drawDamageFeedbackOverlay() {
 function drawBossHud() {
   const summary = bossHudSummary();
   if (!summary) return;
+  // While the milestone banner announces the boss, let it have the spotlight —
+  // never drop the HP panel into the middle of the battlefield.
+  if (state.milestoneBanner?.t > 0) {
+    drawBossDirection(summary);
+    return;
+  }
   ctx.save();
   const hudX = 530;
-  const hudY = state.milestoneBanner?.t > 0 ? 246 : 126;
+  const hudY = 66;
   const hudH = summary.finalPhase ? 76 : 58;
   ctx.fillStyle = "rgba(6, 10, 14, 0.82)";
   ctx.strokeStyle = summary.finalBoss ? "#ffe18a" : "#d946ef";
@@ -6265,6 +6271,7 @@ function drawTutorialHint() {
 
 function drawPhaseBanner(phase) {
   if (state.milestoneBanner?.t > 0) return; // avoid stacking on the milestone banner
+  if (bossHudSummary()) return; // the boss HP bar takes this slot during boss fights
   ctx.save();
   const alert = state.phaseNoticeT > 0;
   ctx.fillStyle = alert ? "rgba(118, 47, 62, 0.78)" : "rgba(5, 10, 13, 0.58)";
