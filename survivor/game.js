@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "impact-20260706";
+const ASSET_VERSION = "proj-glow-20260706";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -5167,6 +5167,10 @@ function updateBullets(dt) {
     b.y += b.vy * dt;
     b.life -= dt;
     b.anim += dt * 12;
+    // Live embers peel off the projectile as it flies.
+    if (Math.random() < dt * 9 && (state.particles?.length || 0) < 220) {
+      spawnParticles(b.x, b.y, b.kind === "boss" ? "#f0abfc" : "#fbbf24", 1, 30, 0.42, 2.6, 12);
+    }
     if (Math.hypot(state.player.x - b.x, state.player.y - b.y) < state.player.radius + b.r && state.player.invuln <= 0) {
       state.player.hp -= b.damage;
       state.player.invuln = 0.55 + state.stats.hurtGrace;
@@ -5856,6 +5860,18 @@ function drawBullets() {
     // and a subtle scale pulse instead.
     const pulse = 1 + Math.sin(b.anim * 2.2) * 0.08;
     const size = (b.kind === "boss" ? 78 : 66) * VIEW_SCALE * pulse;
+    // Additive glow core makes the projectile read as burning light.
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const glowR = size * (0.4 + Math.sin(b.anim * 3.1) * 0.06);
+    const glow = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, glowR);
+    glow.addColorStop(0, b.kind === "boss" ? "rgba(240, 171, 252, 0.6)" : "rgba(255, 220, 140, 0.6)");
+    glow.addColorStop(1, "rgba(255, 120, 30, 0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, glowR, 0, TWO_PI);
+    ctx.fill();
+    ctx.restore();
     // Motion streak: fading afterimages behind the projectile.
     for (let k = 1; k <= 2; k++) {
       drawSprite(ROW.fire, 0, s.x - Math.cos(b.angle) * 13 * k * VIEW_SCALE, s.y - Math.sin(b.angle) * 13 * k * VIEW_SCALE, size * (1 - k * 0.18), false, b.angle, 0.3 / k);
