@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "proj-glow-20260706";
+const ASSET_VERSION = "proj-comet-20260706";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -420,6 +420,30 @@ const ELITE_SHEETS = {
 };
 for (const sheet of Object.values(ELITE_SHEETS)) {
   sheet.img.src = `./assets/${sheet.file}?v=${ASSET_VERSION}`;
+}
+
+// Projectile flicker kits (Codex art): 6x1 256px cells.
+// Frame 3 is the travelling comet (tip +X), frame 4 the impact burst.
+const projFire = new Image();
+projFire.src = `./assets/proj_fire.png?v=${ASSET_VERSION}`;
+const projDark = new Image();
+projDark.src = `./assets/proj_dark.png?v=${ASSET_VERSION}`;
+const PROJ_CELL = 256;
+function projImageFor(kind) {
+  const img = kind === "boss" ? projDark : projFire;
+  return img.complete && img.naturalWidth > 0 ? img : null;
+}
+function drawProjSprite(img, frame, x, y, size, angle, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(Math.round(x), Math.round(y));
+  ctx.rotate(angle);
+  ctx.drawImage(img, frame * PROJ_CELL, 0, PROJ_CELL, PROJ_CELL, -size / 2, -size / 2, size, size);
+  ctx.restore();
+}
+function spawnProjBurst(x, y, kind) {
+  if (!state.projBursts) state.projBursts = [];
+  if (state.projBursts.length < 20) state.projBursts.push({ x, y, kind, life: 0.24, maxLife: 0.24 });
 }
 
 // Bespoke summon companions (Codex art): 12x4 128px cells, centre-anchored.
@@ -3387,6 +3411,12 @@ function hazardImpact(h) {
   state.freeze = Math.max(state.freeze || 0, 0.05);
 }
 function updateJuice(dt) {
+  if (state.projBursts) {
+    for (const pb of [...state.projBursts]) {
+      pb.life -= dt;
+      if (pb.life <= 0) state.projBursts.splice(state.projBursts.indexOf(pb), 1);
+    }
+  }
   if (state.particles) {
     for (const p of [...state.particles]) {
       p.life -= dt;
@@ -3405,6 +3435,15 @@ function updateJuice(dt) {
   }
 }
 function drawJuice() {
+  if (state.projBursts?.length) {
+    for (const pb of state.projBursts) {
+      const img = projImageFor(pb.kind);
+      if (!img) continue;
+      const t = Math.max(0, pb.life / pb.maxLife);
+      const sc = worldToScreen(pb.x, pb.y);
+      drawProjSprite(img, 4, sc.x, sc.y, (90 + (1 - t) * 70) * VIEW_SCALE, 0, 0.35 + t * 0.65);
+    }
+  }
   if (!state.rings?.length && !state.particles?.length) return;
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -5176,6 +5215,7 @@ function updateBullets(dt) {
       state.player.invuln = 0.55 + state.stats.hurtGrace;
       spawnParticles(b.x, b.y, "#ffb4a8", 8, 190, 0.4, 4);
       spawnRing(b.x, b.y, "#ffb4a8", 46, 0.3, 3);
+      spawnProjBurst(b.x, b.y, b.kind);
       triggerPlayerHurtFeedback(b.damage, b.source || (b.kind === "boss" ? "Boss 彈幕" : "遠程彈"));
       b.life = -1;
     }
@@ -5860,6 +5900,7 @@ function drawBullets() {
     // and a subtle scale pulse instead.
     const pulse = 1 + Math.sin(b.anim * 2.2) * 0.08;
     const size = (b.kind === "boss" ? 78 : 66) * VIEW_SCALE * pulse;
+    const projImg = projImageFor(b.kind);
     // Additive glow core makes the projectile read as burning light.
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
@@ -5873,10 +5914,18 @@ function drawBullets() {
     ctx.fill();
     ctx.restore();
     // Motion streak: fading afterimages behind the projectile.
-    for (let k = 1; k <= 2; k++) {
-      drawSprite(ROW.fire, 0, s.x - Math.cos(b.angle) * 13 * k * VIEW_SCALE, s.y - Math.sin(b.angle) * 13 * k * VIEW_SCALE, size * (1 - k * 0.18), false, b.angle, 0.3 / k);
+    if (projImg) {
+      const projSize = size * 1.55;
+      for (let k = 1; k <= 2; k++) {
+        drawProjSprite(projImg, 3, s.x - Math.cos(b.angle) * 14 * k * VIEW_SCALE, s.y - Math.sin(b.angle) * 14 * k * VIEW_SCALE, projSize * (1 - k * 0.2), b.angle, 0.28 / k);
+      }
+      drawProjSprite(projImg, 3, s.x, s.y, projSize, b.angle);
+    } else {
+      for (let k = 1; k <= 2; k++) {
+        drawSprite(ROW.fire, 0, s.x - Math.cos(b.angle) * 13 * k * VIEW_SCALE, s.y - Math.sin(b.angle) * 13 * k * VIEW_SCALE, size * (1 - k * 0.18), false, b.angle, 0.3 / k);
+      }
+      drawSprite(ROW.fire, 0, s.x, s.y, size, false, b.angle);
     }
-    drawSprite(ROW.fire, 0, s.x, s.y, size, false, b.angle);
     if (b.kind === "boss") {
       ctx.save();
       ctx.globalAlpha = 0.45;
