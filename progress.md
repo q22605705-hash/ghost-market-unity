@@ -972,3 +972,13 @@ Testing
 - Added `mapTintForMode()`: the shared battlefield plate now gets a subtle per-run-mode colour wash (cultivation keeps the exact original neutral overlay; gauntlet = warm crimson; garden = cool blue). Purely cosmetic — delivers the REQ-006 "visual variety per mode" value without new art and without touching gameplay. Bespoke background plates (REQ-006) remain queued for Codex as an optional upgrade. Cache `map-tint-20260704`.
 - Verified with `node --check`, `npx.cmd tsc --pretty false`, and `npm run loop:smoke` / `loop:pause-info`.
 - State at end of the finishing loop: every character/enemy/boss uses bespoke art; UI icons span cards, HUD, home, result, enemy status, and pause; modes vary visually; all committed and pushed to origin/main. The solo-finishable scope is complete; the only remaining item (bespoke background plates) awaits Codex REQ-006.
+
+2026-07-05 player-perspective bugfix round (Claude, after user playtest feedback)
+
+- User played and reported: animations "跑掉" and the screen too cluttered. Reproduced both by actually playing (real keyboard input, frame-by-frame capture, per-frame pixel analysis) instead of static screenshots.
+- Root causes found and fixed across four pushed commits:
+  - f329b77: per-frame body re-anchoring for all six character sheets (GPT frames drifted up to 49px vertically / 40px horizontally; now footY=120 / centerX=64 on every frame).
+  - 9fa8dc6: HUD declutter (milestone banner shrunk+raised+shortened, onboarding checklist auto-hides when complete, right panels semi-transparent).
+  - 0bc0dc1: camera now locks the player to screen-centre — the lagging follow made the character slide around the viewport, which was the visible "動畫跑掉". Added a faint bottom-left build stamp.
+  - b2f008a: threat arrow only points at offscreen dangers (smaller, translucent); threat box only for danger-level events; de-flaked loop:elite-enemies.
+- Verification: diag-play/diag-hero/diag-run/diag-session/diag-natural real-input playtests; run montage confirms the hero stays centred; full-session and natural-pacing runs show a clean mid-fight view; no console errors; loops smoke/pause-info/combat-readability/upgrade-choice/boss/final-boss green and elite-enemies 3x green.
