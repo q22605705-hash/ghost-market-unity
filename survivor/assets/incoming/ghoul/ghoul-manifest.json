@@ -1,0 +1,32 @@
+{
+  "request": "REQ-009",
+  "batch": "ghoul",
+  "generatedBy": "Codex image lane using built-in image generation",
+  "generatedDate": "2026-07-05",
+  "background": "#00ff00 chroma key",
+  "source": {
+    "file": "ghoul-greenscreen.png",
+    "width": 1881,
+    "height": 836,
+    "pixelFormat": "Format24bppRgb"
+  },
+  "intendedNormalizedTarget": {
+    "columns": 12,
+    "rows": 4,
+    "cellSize": 128,
+    "width": 1536,
+    "height": 512
+  },
+  "enemy": {
+    "id": "ghoul",
+    "description": "Basic melee moon-shrine ghoul with hunched undead silhouette, ragged shrine cloth, and claw-swipe action frames.",
+    "anchor": "bottom-center"
+  },
+  "rows": [
+    { "index": 0, "id": "idle" },
+    { "index": 1, "id": "action" },
+    { "index": 2, "id": "hit" },
+    { "index": 3, "id": "death" }
+  ],
+  "handoff": "Claude should crop/normalize, remove green matte, verify 48 placements, and integrate only in the runtime lane. Codex did not edit runtime code."
+}
