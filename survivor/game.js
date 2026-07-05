@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "stable-anim-20260706";
+const ASSET_VERSION = "summons-whole-20260706";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -6653,8 +6653,7 @@ function drawSummonPanel(x, y) {
     const selected = selectedSummon().id === item.id;
     ctx.fillStyle = selected ? "rgba(126, 218, 194, 0.22)" : owned ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)";
     ctx.fillRect(x, rowY - 30, 318, 52);
-    const frame = Math.floor(state.time * 5 + i * 3) % 12;
-    if (!drawSummonSprite(item.id, frame, x + 22, rowY - 4, 46, owned ? 1 : 0.55)) {
+    if (!drawSummonSprite(item.id, 0, x + 22, rowY - 4, 46, owned ? 1 : 0.55)) {
       ctx.fillStyle = item.color;
       ctx.beginPath();
       ctx.arc(x + 22, rowY - 4, 12, 0, TWO_PI);

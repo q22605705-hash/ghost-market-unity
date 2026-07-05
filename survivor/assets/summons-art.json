@@ -1,5 +1,6 @@
 {
   "source": "incoming/summons/summons-greenscreen.png",
+  "contentAware": true,
   "cols": 12,
   "rows": 4,
   "cell": 128,
@@ -11,8 +12,24 @@
   ],
   "anchor": {
     "x": 64,
-    "y": 120
+    "y": 64
   },
-  "reanchored": true,
-  "matteResidualRatio": 0
+  "report": {
+    "moon_cat": {
+      "runs": 12,
+      "used": 11
+    },
+    "paper_imp": {
+      "runs": 11,
+      "used": 11
+    },
+    "bell_spirit": {
+      "runs": 11,
+      "used": 11
+    },
+    "shadow_moth": {
+      "runs": 11,
+      "used": 11
+    }
+  }
 }
