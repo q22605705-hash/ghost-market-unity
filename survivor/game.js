@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "anim-smooth-20260705";
+const ASSET_VERSION = "panel-icons-20260705";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -6523,8 +6523,10 @@ function drawEquipmentPanel(x, y) {
     const rowY = y + i * 78;
     ctx.fillStyle = item.id === state.selectedEquipment ? "rgba(126, 218, 194, 0.2)" : "rgba(255,255,255,0.05)";
     ctx.fillRect(x, rowY - 24, 318, 62);
-    text(item.name, x + 12, rowY, 18, "#fff4d8");
-    wrap(item.desc, x + 12, rowY + 22, 292, 17, "#b9d0ca");
+    const equipIcons = { soul_bell: "magnet", blood_cloak: "armor", mirror_charm: "talisman" };
+    const hasIcon = drawUiIcon(equipIcons[item.id], x + 26, rowY + 6, 36);
+    text(item.name, x + (hasIcon ? 52 : 12), rowY, 18, "#fff4d8");
+    wrap(item.desc, x + (hasIcon ? 52 : 12), rowY + 22, hasIcon ? 252 : 292, 17, "#b9d0ca");
   });
   text("目前加成", x, y + 240, 15, "#ffe8ad");
   text(selected.name, x + 86, y + 240, 14, "#d9e3df");
@@ -6579,8 +6581,10 @@ function drawShopPanel(x, y) {
       ctx.strokeStyle = "#ffe18a";
       ctx.strokeRect(x, rowY - 24, 318, 40);
     }
-    text(`${item.name} ${level}/${item.max}`, x + 10, rowY - 6, 15, "#fff4d8");
-    text(item.desc, x + 10, rowY + 12, 12, "#b9d0ca");
+    const shopIcons = { max_hp: "health", attack: "talisman", magnet: "magnet", speed: "speed", dash: "wind" };
+    const hasIcon = drawUiIcon(shopIcons[item.id], x + 22, rowY - 4, 30);
+    text(`${item.name} ${level}/${item.max}`, x + (hasIcon ? 44 : 10), rowY - 6, 15, "#fff4d8");
+    text(item.desc, x + (hasIcon ? 44 : 10), rowY + 12, 12, "#b9d0ca");
     text(maxed ? "滿級" : affordable ? "可升級" : `${upgradeCost(item)}`, x + 258, rowY + 5, 13, affordable || maxed ? "#ffe8ad" : "#6f8587");
   });
   if (summary.affordableCount) {
