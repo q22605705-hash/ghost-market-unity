@@ -1,0 +1,52 @@
+{
+  "request": "REQ-010",
+  "id": "proj_fire",
+  "type": "projectile_effect_sheet_source",
+  "file": "proj_fire-greenscreen.png",
+  "background": "#00ff00",
+  "sourceDimensions": {
+    "width": 1536,
+    "height": 256
+  },
+  "sourceGrid": {
+    "columns": 6,
+    "rows": 1,
+    "cellWidth": 256,
+    "cellHeight": 256
+  },
+  "frames": [
+    {
+      "col": 0,
+      "row": 0,
+      "name": "ignite"
+    },
+    {
+      "col": 1,
+      "row": 0,
+      "name": "flare"
+    },
+    {
+      "col": 2,
+      "row": 0,
+      "name": "surge"
+    },
+    {
+      "col": 3,
+      "row": 0,
+      "name": "comet"
+    },
+    {
+      "col": 4,
+      "row": 0,
+      "name": "burst"
+    },
+    {
+      "col": 5,
+      "row": 0,
+      "name": "cooldown"
+    }
+  ],
+  "anchorIntent": "visual-center projectile anchor",
+  "generationNotes": "Generated with built-in image generation on a #00ff00 chroma matte, then normalized into exact 6x1 256px cells.",
+  "runtimeLaneNotes": "Claude should remove the green matte, slice by this grid, verify six placements, and wire runtime references in the runtime lane."
+}
