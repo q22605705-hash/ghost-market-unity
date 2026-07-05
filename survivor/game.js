@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "feet-anchor-20260705";
+const ASSET_VERSION = "anim-smooth-20260705";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -5411,6 +5411,12 @@ function drawPlayer() {
       frame = animFrame;
     }
     drawHeroSprite(row, frame, s.x, s.y, 120 * VIEW_SCALE, p.facing < 0, alpha);
+    if (row === HERO_ROWS.run || row === HERO_ROWS.idle) {
+      // Fade the next frame in over the current one so loop steps morph
+      // instead of hard-cutting (the GPT frames are not a true cycle).
+      const t = p.anim % 1;
+      if (t > 0.15) drawHeroSprite(row, (frame + 1) % 12, s.x, s.y, 120 * VIEW_SCALE, p.facing < 0, alpha * t);
+    }
   } else {
     const row = moving ? ROW.heroRun : ROW.heroIdle;
     const anchor = resolveFrameAnchor(row, animFrame, DEFAULT_ANCHOR);
@@ -5518,6 +5524,10 @@ function drawEnemies() {
       const flip = e.x > state.player.x;
       if (e.hit > 0) drawEliteSprite(sheetKey, wRow, frame, s.x, s.y, (size + 8) * VIEW_SCALE, flip, 0.45);
       drawEliteSprite(sheetKey, wRow, frame, s.x, s.y, size * VIEW_SCALE, flip, style.alpha);
+      if (wRow === ELITE_ROWS.idle) {
+        const t = e.anim % 1;
+        if (t > 0.15) drawEliteSprite(sheetKey, wRow, (frame + 1) % 12, s.x, s.y, size * VIEW_SCALE, flip, style.alpha * t);
+      }
     } else {
       if (e.hit > 0) drawSprite(row, frame, s.x, s.y, (size + 8) * VIEW_SCALE, e.x > state.player.x, 0, 0.45, anchor.x, anchor.y);
       drawSprite(row, frame, s.x, s.y, size * VIEW_SCALE, e.x > state.player.x, 0, style.alpha, anchor.x, anchor.y);

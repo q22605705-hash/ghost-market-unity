@@ -93,26 +93,94 @@ function bodyBox(buf) {
   return { centerX: Math.round(centerX), footY };
 }
 
-const out = new PNG({ width: COLS * CELL, height: ROWS * CELL });
+// --- Pass 1: render + re-anchor every frame into per-row frame buffers. ---
+const rowsFrames = [];
 let matte = 0, solid = 0;
 for (let r = 0; r < ROWS; r++) {
+  const frames = [];
   for (let c = 0; c < COLS; c++) {
     const buf = renderCell(c, r);
     const box = bodyBox(buf);
     const dx = box ? Math.round(64 - box.centerX) : 0;
     const dy = box ? Math.round(FOOT_Y - box.footY) : 0;
+    const shifted = new Uint8ClampedArray(CELL * CELL * 4);
     for (let y = 0; y < CELL; y++) {
       for (let x = 0; x < CELL; x++) {
         const srcX = x - dx, srcY = y - dy;
-        const oo = ((r * CELL + y) * out.width + (c * CELL + x)) << 2;
-        if (srcX < 0 || srcX >= CELL || srcY < 0 || srcY >= CELL) { out.data[oo + 3] = 0; continue; }
-        const si = (srcY * CELL + srcX) << 2;
-        out.data[oo] = buf[si]; out.data[oo + 1] = buf[si + 1]; out.data[oo + 2] = buf[si + 2]; out.data[oo + 3] = buf[si + 3];
+        if (srcX < 0 || srcX >= CELL || srcY < 0 || srcY >= CELL) continue;
+        const si = (srcY * CELL + srcX) << 2, di = (y * CELL + x) << 2;
+        shifted[di] = buf[si]; shifted[di + 1] = buf[si + 1]; shifted[di + 2] = buf[si + 2]; shifted[di + 3] = buf[si + 3];
         if (buf[si + 3] > 40) { solid++; if (buf[si + 1] > buf[si] + 40 && buf[si + 1] > buf[si + 2] + 40) matte++; }
+      }
+    }
+    frames.push(shifted);
+  }
+  rowsFrames.push(frames);
+}
+
+// --- Pass 2: stabilize looping rows (idle/run). GPT frames are independent
+// drawings, not an animation cycle — adjacent frames can differ by 30-57% of
+// pixels, which plays back as flicker. Build a smooth ping-pong loop from the
+// most mutually-similar frames instead. ---
+function frameDiff(a, b) {
+  let diff = 0, count = 0;
+  for (let i = 0; i < CELL * CELL; i++) {
+    const o = i << 2;
+    const va = a[o + 3] > 60, vb = b[o + 3] > 60;
+    if (!va && !vb) continue;
+    count++;
+    if (va !== vb) diff++;
+    else if (Math.abs(a[o] - b[o]) + Math.abs(a[o + 1] - b[o + 1]) + Math.abs(a[o + 2] - b[o + 2]) > 90) diff++;
+  }
+  return count ? diff / count : 0;
+}
+const LOOP_ROWS = new Set(["idle", "run"]);
+const stabilized = {};
+for (let r = 0; r < ROWS; r++) {
+  if (!LOOP_ROWS.has(ROW_NAMES[r])) continue;
+  const frames = rowsFrames[r];
+  const D = frames.map((a) => frames.map((b) => frameDiff(a, b)));
+  // Medoid = frame most similar to all others.
+  let medoid = 0, best = Infinity;
+  for (let i = 0; i < COLS; i++) {
+    const total = D[i].reduce((s, v) => s + v, 0);
+    if (total < best) { best = total; medoid = i; }
+  }
+  // Greedy nearest-neighbour chain: always keep at least 3 frames so the loop
+  // stays alive, then extend up to 5 while hops stay under 18% diff.
+  const chain = [medoid];
+  const used = new Set(chain);
+  while (chain.length < 5) {
+    const last = chain[chain.length - 1];
+    let next = -1, nd = Infinity;
+    for (let i = 0; i < COLS; i++) if (!used.has(i) && D[last][i] < nd) { nd = D[last][i]; next = i; }
+    if (next < 0) break;
+    if (chain.length >= 3 && nd > 0.18) break;
+    chain.push(next);
+    used.add(next);
+  }
+  // Ping-pong sequence tiled into the 12 slots.
+  const pingpong = [...chain, ...chain.slice(1, -1).reverse()];
+  const seq = [];
+  for (let i = 0; i < COLS; i++) seq.push(pingpong[i % pingpong.length]);
+  rowsFrames[r] = seq.map((idx) => frames[idx]);
+  stabilized[ROW_NAMES[r]] = { chain, medoid };
+}
+
+// --- Pass 3: write the sheet. ---
+const out = new PNG({ width: COLS * CELL, height: ROWS * CELL });
+for (let r = 0; r < ROWS; r++) {
+  for (let c = 0; c < COLS; c++) {
+    const buf = rowsFrames[r][c];
+    for (let y = 0; y < CELL; y++) {
+      for (let x = 0; x < CELL; x++) {
+        const si = (y * CELL + x) << 2;
+        const oo = ((r * CELL + y) * out.width + (c * CELL + x)) << 2;
+        out.data[oo] = buf[si]; out.data[oo + 1] = buf[si + 1]; out.data[oo + 2] = buf[si + 2]; out.data[oo + 3] = buf[si + 3];
       }
     }
   }
 }
 fs.writeFileSync(outPng, PNG.sync.write(out));
 fs.writeFileSync(outJson, `${JSON.stringify({ source: `incoming/${kind}/${kind}-greenscreen.png`, cols: COLS, rows: ROWS, cell: CELL, rowNames: ROW_NAMES, anchor: { x: 64, y: FOOT_Y }, reanchored: true, matteResidualRatio: Number((solid ? matte / solid : 0).toFixed(4)) }, null, 2)}\n`);
-console.log(JSON.stringify({ ok: true, kind, rows: ROWS, anchor: { x: 64, y: FOOT_Y }, matteResidualRatio: Number((solid ? matte / solid : 0).toFixed(4)) }, null, 2));
+console.log(JSON.stringify({ ok: true, kind, rows: ROWS, anchor: { x: 64, y: FOOT_Y }, stabilized, matteResidualRatio: Number((solid ? matte / solid : 0).toFixed(4)) }, null, 2));
