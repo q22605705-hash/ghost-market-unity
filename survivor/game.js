@@ -6451,6 +6451,7 @@ function drawMenu() {
   drawHomeNav(488, 574, "召喚", "✦", state.menuTab === "summon");
 
   center(state.mode === "loading" ? "載入素材中..." : tabOpen ? "Esc 返回首頁" : "選擇模式後按開始探索，Esc 可在戰鬥中暫停", 716, 666, 18, "#efe7ce");
+  text(`v ${ASSET_VERSION}`, 10, H - 8, 10, "rgba(190, 210, 205, 0.4)");
 }
 
 function drawMenuTabPanel() {
