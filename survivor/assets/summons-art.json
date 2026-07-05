@@ -1,0 +1,18 @@
+{
+  "source": "incoming/summons/summons-greenscreen.png",
+  "cols": 12,
+  "rows": 4,
+  "cell": 128,
+  "rowNames": [
+    "moon_cat",
+    "paper_imp",
+    "bell_spirit",
+    "shadow_moth"
+  ],
+  "anchor": {
+    "x": 64,
+    "y": 120
+  },
+  "reanchored": true,
+  "matteResidualRatio": 0
+}

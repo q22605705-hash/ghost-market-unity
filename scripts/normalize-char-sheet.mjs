@@ -10,9 +10,12 @@ import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
 
 const kind = process.argv[2];
-if (!kind) throw new Error("Usage: node scripts/normalize-char-sheet.mjs <kind> <rows> <names>");
+if (!kind) throw new Error("Usage: node scripts/normalize-char-sheet.mjs <kind> <rows> <names> [center]");
 const ROWS = Number(process.argv[3]) || 4;
 const ROW_NAMES = process.argv[4] ? process.argv[4].split(",") : ["idle", "action", "hit", "death"];
+// "center" mode: floating creatures — anchor the body centroid instead of the
+// feet, and stabilize every row (each row is its own idle loop).
+const CENTER_MODE = process.argv[5] === "center";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const srcPath = path.join(repoRoot, `survivor/assets/incoming/${kind}/${kind}-greenscreen.png`);
@@ -45,12 +48,19 @@ function despill(r, g, b) {
   return [r, g, b];
 }
 // Resize one source cell to a fresh 128x128 RGBA buffer (green removed).
+// Aspect-preserving: non-square source cells are letterboxed, not squeezed.
+const cellScale = CELL / Math.max(srcCellW, srcCellH);
+const fitW = Math.round(srcCellW * cellScale);
+const fitH = Math.round(srcCellH * cellScale);
+const fitOX = Math.floor((CELL - fitW) / 2);
+const fitOY = Math.floor((CELL - fitH) / 2);
 function renderCell(cx, cy) {
   const buf = new Uint8ClampedArray(CELL * CELL * 4);
   for (let y = 0; y < CELL; y++) {
     for (let x = 0; x < CELL; x++) {
-      const fx = cx * srcCellW + (x / (CELL - 1)) * (srcCellW - 1);
-      const fy = cy * srcCellH + (y / (CELL - 1)) * (srcCellH - 1);
+      if (x < fitOX || x >= fitOX + fitW || y < fitOY || y >= fitOY + fitH) continue;
+      const fx = cx * srcCellW + ((x - fitOX) / (fitW - 1)) * (srcCellW - 1);
+      const fy = cy * srcCellH + ((y - fitOY) / (fitH - 1)) * (srcCellH - 1);
       const x0 = Math.floor(fx), y0 = Math.floor(fy);
       const x1 = Math.min(x0 + 1, src.width - 1), y1 = Math.min(y0 + 1, src.height - 1);
       const tx = fx - x0, ty = fy - y0;
@@ -80,8 +90,12 @@ function bodyBox(buf) {
     for (let x = 0; x < CELL; x++) if (colCount[x] > 0) { if (first < 0) first = x; last = x; }
   }
   if (first < 0) return null;
-  let footY = 0;
-  for (let x = first; x <= last; x++) for (let y = 0; y < CELL; y++) if (buf[((y * CELL + x) << 2) + 3] > 60 && y > footY) footY = y;
+  let footY = 0, topY = CELL;
+  for (let x = first; x <= last; x++) for (let y = 0; y < CELL; y++) if (buf[((y * CELL + x) << 2) + 3] > 60) { if (y > footY) footY = y; if (y < topY) topY = y; }
+  if (CENTER_MODE) {
+    // Floating body: anchor the bbox centre.
+    return { centerX: Math.round((first + last) / 2), footY, centerY: Math.round((topY + footY) / 2) };
+  }
   // Feet centroid: opaque pixels in the bottom 14px of the body, body columns only.
   let sx = 0, n = 0;
   for (let y = Math.max(0, footY - 14); y <= footY; y++) {
@@ -102,7 +116,7 @@ for (let r = 0; r < ROWS; r++) {
     const buf = renderCell(c, r);
     const box = bodyBox(buf);
     const dx = box ? Math.round(64 - box.centerX) : 0;
-    const dy = box ? Math.round(FOOT_Y - box.footY) : 0;
+    const dy = box ? (CENTER_MODE ? Math.round(66 - box.centerY) : Math.round(FOOT_Y - box.footY)) : 0;
     const shifted = new Uint8ClampedArray(CELL * CELL * 4);
     for (let y = 0; y < CELL; y++) {
       for (let x = 0; x < CELL; x++) {
@@ -137,7 +151,7 @@ function frameDiff(a, b) {
 const LOOP_ROWS = new Set(["idle", "run"]);
 const stabilized = {};
 for (let r = 0; r < ROWS; r++) {
-  if (!LOOP_ROWS.has(ROW_NAMES[r])) continue;
+  if (!CENTER_MODE && !LOOP_ROWS.has(ROW_NAMES[r])) continue;
   const frames = rowsFrames[r];
   const D = frames.map((a) => frames.map((b) => frameDiff(a, b)));
   // Medoid = frame most similar to all others.

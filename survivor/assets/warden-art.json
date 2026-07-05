@@ -1,0 +1,18 @@
+{
+  "source": "incoming/warden/warden-greenscreen.png",
+  "cols": 12,
+  "rows": 4,
+  "cell": 128,
+  "rowNames": [
+    "idle",
+    "action",
+    "hit",
+    "death"
+  ],
+  "anchor": {
+    "x": 64,
+    "y": 120
+  },
+  "reanchored": true,
+  "matteResidualRatio": 0
+}

@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "panel-icons-20260705";
+const ASSET_VERSION = "creature-art-20260705";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -401,11 +401,32 @@ const ELITE_SHEETS = {
   weaver: { img: new Image(), file: "weaver-sprites.png", anchorY: 120 },
   mirror_lantern: { img: new Image(), file: "mirror_lantern-sprites.png", anchorY: 120 },
   talisman_binder: { img: new Image(), file: "talisman_binder-sprites.png", anchorY: 120 },
+  skitter: { img: new Image(), file: "skitter-sprites.png", anchorY: 120 },
+  bomber: { img: new Image(), file: "bomber-sprites.png", anchorY: 120 },
+  warden: { img: new Image(), file: "warden-sprites.png", anchorY: 120 },
   boss: { img: new Image(), file: "boss-sprites.png", anchorY: 120 },
   final_boss: { img: new Image(), file: "final_boss-sprites.png", anchorY: 120 }
 };
 for (const sheet of Object.values(ELITE_SHEETS)) {
   sheet.img.src = `./assets/${sheet.file}?v=${ASSET_VERSION}`;
+}
+
+// Bespoke summon companions (Codex art): 12x4 128px cells, centre-anchored.
+const summonSprites = new Image();
+summonSprites.src = `./assets/summons-sprites.png?v=${ASSET_VERSION}`;
+const SUMMON_ROWS = { moon_cat: 0, paper_imp: 1, bell_spirit: 2, shadow_moth: 3 };
+function summonSheetReady() {
+  return summonSprites.complete && summonSprites.naturalWidth > 0;
+}
+function drawSummonSprite(summonId, frame, x, y, size, alpha = 1) {
+  const row = SUMMON_ROWS[summonId];
+  if (row === undefined || !summonSheetReady()) return false;
+  const cell = 128;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(summonSprites, (frame % 12) * cell, row * cell, cell, cell, Math.round(x - size / 2), Math.round(y - size / 2), size, size);
+  ctx.restore();
+  return true;
 }
 
 // Bespoke hero sheet (Codex art): 12x6 128px cells.
@@ -4752,6 +4773,8 @@ function updateEnemies(dt) {
     const d = norm(p.x - e.x, p.y - e.y);
     const desired = (e.kind === "mage" || e.kind === "boss" || e.kind === "weaver" || e.kind === "mirror_lantern" || e.kind === "talisman_binder") && dist(e, p) < 360 ? -0.25 : 1;
     const rush = e.kind === "skitter" && dist(e, p) < 220 ? 1.28 : 1;
+    e.rushing = rush > 1;
+    if (e.kind === "bomber") e.arming = dist(e, p) < 170;
     const slowFactor = e.slow > 0 ? 0.58 : 1;
     e.x += d.x * e.speed * desired * slowFactor * rush * dt;
     e.y += d.y * e.speed * desired * slowFactor * rush * dt;
@@ -4838,9 +4861,13 @@ function applyWardenAuras() {
   for (const e of state.enemies) e.guarded = 0;
   for (const warden of state.enemies) {
     if (warden.kind !== "warden") continue;
+    warden.guarding = false;
     for (const e of state.enemies) {
       if (e === warden || e.kind === "boss") continue;
-      if (Math.hypot(e.x - warden.x, e.y - warden.y) < 150) e.guarded = Math.max(e.guarded || 0, 0.18);
+      if (Math.hypot(e.x - warden.x, e.y - warden.y) < 150) {
+        e.guarded = Math.max(e.guarded || 0, 0.18);
+        warden.guarding = true;
+      }
     }
   }
 }
@@ -5345,6 +5372,9 @@ function eliteActing(e) {
   if (e.kind === "weaver") return Boolean(e.conjureCast);
   if (e.kind === "mirror_lantern") return Boolean(e.mirrorCast);
   if (e.kind === "talisman_binder") return (e.bindPose || 0) > 0;
+  if (e.kind === "skitter") return Boolean(e.rushing);
+  if (e.kind === "bomber") return Boolean(e.arming);
+  if (e.kind === "warden") return Boolean(e.guarding);
   return false;
 }
 
@@ -5435,41 +5465,26 @@ function drawSummonCompanion(frame) {
   const sy = screen.y + Math.sin(performance.now() / 240 + frame) * 3 * VIEW_SCALE;
   const pulse = 1 + (c.pulse || 0) * 0.38;
   ctx.save();
-  ctx.globalAlpha = 0.92;
-  ctx.fillStyle = summon.color;
-  ctx.shadowColor = summon.color;
-  ctx.shadowBlur = 12;
-  ctx.beginPath();
-  ctx.arc(sx, sy, 13 * pulse * VIEW_SCALE, 0, TWO_PI);
-  ctx.fill();
-  if (summon.id === "paper_imp") {
-    drawUpgradeIcon({ sheet: "tags", row: 4, frame: Math.floor(state.time * 12) % 12, angle: -0.35 }, sx, sy, 34 * VIEW_SCALE);
-  } else if (summon.id === "bell_spirit") {
-    ctx.strokeStyle = "#fff4d8";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(sx, sy, 20 * pulse * VIEW_SCALE, 0, TWO_PI);
-    ctx.stroke();
-    center("♪", sx, sy + 7 * VIEW_SCALE, 18 * VIEW_SCALE, "#fff4d8");
-  } else if (summon.id === "shadow_moth") {
-    ctx.fillStyle = "rgba(193, 140, 255, 0.42)";
-    ctx.beginPath();
-    ctx.ellipse(sx - 12 * VIEW_SCALE, sy, 13 * VIEW_SCALE, 22 * VIEW_SCALE, -0.55, 0, TWO_PI);
-    ctx.ellipse(sx + 12 * VIEW_SCALE, sy, 13 * VIEW_SCALE, 22 * VIEW_SCALE, 0.55, 0, TWO_PI);
-    ctx.fill();
+  const animT = state.time * 5;
+  const sFrame = Math.floor(animT) % 12;
+  if (drawSummonSprite(summon.id, sFrame, sx, sy, 52 * pulse * VIEW_SCALE)) {
+    const ft = animT % 1;
+    if (ft > 0.15) drawSummonSprite(summon.id, (sFrame + 1) % 12, sx, sy, 52 * pulse * VIEW_SCALE, ft);
   } else {
-    ctx.strokeStyle = "#fff4d8";
-    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = summon.color;
+    ctx.shadowColor = summon.color;
+    ctx.shadowBlur = 12;
     ctx.beginPath();
-    ctx.arc(sx, sy, 21 * pulse * VIEW_SCALE, 0, TWO_PI);
-    ctx.stroke();
+    ctx.arc(sx, sy, 13 * pulse * VIEW_SCALE, 0, TWO_PI);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(5, 10, 13, 0.75)";
+    ctx.beginPath();
+    ctx.arc(sx - 4 * VIEW_SCALE, sy - 2 * VIEW_SCALE, 2 * VIEW_SCALE, 0, TWO_PI);
+    ctx.arc(sx + 4 * VIEW_SCALE, sy - 2 * VIEW_SCALE, 2 * VIEW_SCALE, 0, TWO_PI);
+    ctx.fill();
   }
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = "rgba(5, 10, 13, 0.75)";
-  ctx.beginPath();
-  ctx.arc(sx - 4 * VIEW_SCALE, sy - 2 * VIEW_SCALE, 2 * VIEW_SCALE, 0, TWO_PI);
-  ctx.arc(sx + 4 * VIEW_SCALE, sy - 2 * VIEW_SCALE, 2 * VIEW_SCALE, 0, TWO_PI);
-  ctx.fill();
   if (c.action !== "idle") center(companionActionMark(c.action), sx, sy - 20 * VIEW_SCALE, 12, "#ffe8ad");
   ctx.restore();
 }
@@ -6606,10 +6621,13 @@ function drawSummonPanel(x, y) {
     const selected = selectedSummon().id === item.id;
     ctx.fillStyle = selected ? "rgba(126, 218, 194, 0.22)" : owned ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)";
     ctx.fillRect(x, rowY - 30, 318, 52);
-    ctx.fillStyle = item.color;
-    ctx.beginPath();
-    ctx.arc(x + 22, rowY - 4, 12, 0, TWO_PI);
-    ctx.fill();
+    const frame = Math.floor(state.time * 5 + i * 3) % 12;
+    if (!drawSummonSprite(item.id, frame, x + 22, rowY - 4, 46, owned ? 1 : 0.55)) {
+      ctx.fillStyle = item.color;
+      ctx.beginPath();
+      ctx.arc(x + 22, rowY - 4, 12, 0, TWO_PI);
+      ctx.fill();
+    }
     text(item.name, x + 48, rowY - 9, 17, "#fff4d8");
     text(item.desc, x + 48, rowY + 12, 12, "#b9d0ca");
     text(selected ? "使用中" : owned ? "選用" : `${item.cost}`, x + 254, rowY + 5, 13, owned || saveData.moonDust >= item.cost ? "#ffe8ad" : "#6f8587");
