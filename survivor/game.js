@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "creature-art-20260705";
+const ASSET_VERSION = "mode-maps-20260705";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -386,6 +386,14 @@ const sprites = new Image();
 sprites.src = `./assets/survivor-sprites.png?v=${ASSET_VERSION}`;
 const mapBackground = new Image();
 mapBackground.src = `./assets/map-shrine-courtyard.png?v=${ASSET_VERSION}`;
+// Bespoke per-mode battlefield plates (Codex art); fall back to the default plate.
+const MODE_MAPS = { gauntlet: new Image(), garden: new Image() };
+MODE_MAPS.gauntlet.src = `./assets/map-crimson-shrine.png?v=${ASSET_VERSION}`;
+MODE_MAPS.garden.src = `./assets/map-moonlit-garden.png?v=${ASSET_VERSION}`;
+function activeMapImage() {
+  const img = MODE_MAPS[state.runType];
+  return img && img.complete && img.naturalWidth > 0 ? img : mapBackground;
+}
 const vfxTags = new Image();
 vfxTags.src = `./assets/skill-vfx-cutouts/normalized/magic-tags.png?v=${ASSET_VERSION}`;
 const vfxBursts = new Image();
@@ -5207,8 +5215,10 @@ function draw() {
 }
 
 function mapTintForMode() {
-  // Purely cosmetic per-mode wash over the shared battlefield plate; the default
-  // cultivation run keeps the original neutral overlay.
+  // Bespoke per-mode plates now carry the mood; when a mode plate is loaded,
+  // keep the original neutral overlay. The colour wash remains only as the
+  // fallback while a plate has not loaded yet.
+  if (activeMapImage() !== mapBackground) return "rgba(2, 8, 9, 0.18)";
   if (state.runType === "gauntlet") return "rgba(30, 6, 8, 0.22)";
   if (state.runType === "garden") return "rgba(3, 12, 18, 0.22)";
   return "rgba(2, 8, 9, 0.18)";
@@ -5217,23 +5227,24 @@ function mapTintForMode() {
 function drawBackground() {
   ctx.fillStyle = "#071414";
   ctx.fillRect(0, 0, W, H);
-  if (mapBackground.complete && mapBackground.naturalWidth > 0) {
+  const plate = activeMapImage();
+  if (plate.complete && plate.naturalWidth > 0) {
     const cam = renderCamera();
     const worldAspect = WORLD_W / WORLD_H;
-    const imageAspect = mapBackground.naturalWidth / mapBackground.naturalHeight;
+    const imageAspect = plate.naturalWidth / plate.naturalHeight;
     let sx = 0;
     let sy = 0;
-    let sw = mapBackground.naturalWidth;
-    let sh = mapBackground.naturalHeight;
+    let sw = plate.naturalWidth;
+    let sh = plate.naturalHeight;
     if (imageAspect > worldAspect) {
-      sw = mapBackground.naturalHeight * worldAspect;
-      sx = (mapBackground.naturalWidth - sw) / 2;
+      sw = plate.naturalHeight * worldAspect;
+      sx = (plate.naturalWidth - sw) / 2;
     } else {
-      sh = mapBackground.naturalWidth / worldAspect;
-      sy = (mapBackground.naturalHeight - sh) / 2;
+      sh = plate.naturalWidth / worldAspect;
+      sy = (plate.naturalHeight - sh) / 2;
     }
     ctx.drawImage(
-      mapBackground,
+      plate,
       sx,
       sy,
       sw,
@@ -9211,6 +9222,14 @@ window.debug_afflict_enemy = () => {
       ? { burn: enemy.burn, poison: enemy.poison, slow: enemy.slow, curse: enemy.curse }
       : null
   };
+};
+
+window.debug_set_run_type = (runType = "cultivation") => {
+  if (!state.player) resetGame();
+  if (state.mode !== "playing") state.mode = "playing";
+  state.runType = runType;
+  draw();
+  return window.render_game_to_text();
 };
 
 window.debug_move_player_to_bind_seal = () => {

@@ -169,7 +169,9 @@ Both count as elite kills, appear on the minimap, and expose `bindSeals`/`player
   - row3: `talisman`, `burn`, `slow`, `curse`, `armor`, `pickup_range`
 - Handoff: Claude should remove the green matte, slice by the 256px source grid, downscale to 128px cells, and use `icon-roster.json` as the runtime key map. Codex did not edit `survivor/game.js`, scripts, package files, or runtime metadata.
 
-## ART-REQ-006 - Map background plates    status: ready
+## ART-REQ-006 - Map background plates    status: done (Claude 2026-07-05)
+
+Integrated: copied to `survivor/assets/map-crimson-shrine.png` / `map-moonlit-garden.png`, added a `MODE_MAPS` registry + `activeMapImage()` so the battlefield plate switches by run mode (培育=default courtyard, 狂潮=crimson shrine, 月庭=moonlit garden) with fallback to the default plate; the interim colour wash now only applies while a plate loads. Verified with per-mode screenshots (all three render, HUD readable, no failed requests).
 
 - Request: REQ-006
 - Files:
