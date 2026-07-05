@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "vfx-juice-20260706";
+const ASSET_VERSION = "impact-20260706";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -3377,6 +3377,15 @@ function spawnRing(x, y, color, maxR = 120, life = 0.42, width = 3) {
   if (!state.rings) state.rings = [];
   if (state.rings.length < 24) state.rings.push({ x, y, color, maxR, life, maxLife: life, width });
 }
+function hazardImpact(h) {
+  const color = h.kind === "bossSeal" ? "#c084fc" : h.kind === "bindSeal" ? "#ffe18a" : h.kind === "poisonCloud" ? "#4ade80" : "#fbbf24";
+  spawnRing(h.x, h.y, "#fff7e8", h.r * 1.5, 0.26, 6);
+  spawnRing(h.x, h.y, color, h.r * 1.15, 0.45, 4);
+  spawnParticles(h.x, h.y, color, 18, 300, 0.55, 5, 60);
+  spawnParticles(h.x, h.y, "#f3ead1", 8, 180, 0.4, 3, 100);
+  state.shake = Math.max(state.shake, h.kind === "bossSeal" ? 9 : 6);
+  state.freeze = Math.max(state.freeze || 0, 0.05);
+}
 function updateJuice(dt) {
   if (state.particles) {
     for (const p of [...state.particles]) {
@@ -3579,6 +3588,9 @@ function killEnemy(e) {
   const i = state.enemies.indexOf(e);
   if (i < 0) return;
   state.enemies.splice(i, 1);
+  const puff = e.kind === "boss" ? "#d946ef" : e.kind === "brute" ? "#ff9a62" : "#9fb6c4";
+  spawnParticles(e.x, e.y - 8, puff, e.kind === "boss" ? 20 : 8, 190, 0.45, 4, 40);
+  spawnRing(e.x, e.y - 6, puff, e.kind === "boss" ? 120 : 46, 0.32, 3);
   if (e.kind === "bomber") explodeBomber(e);
   state.kills++;
   awardStrongEnemyLoot(e);
@@ -5109,6 +5121,7 @@ function resolveBossSpecial(e, pattern) {
     addEffect("divineJudgment", e.x, e.y - 20, 210, 0.55);
     spawnRing(e.x, e.y, "#d946ef", 190, 0.55, 5);
     spawnParticles(e.x, e.y, "#f0abfc", 22, 300, 0.6, 4);
+    state.freeze = Math.max(state.freeze || 0, 0.05);
     state.shake = 8;
     return;
   }
@@ -5189,7 +5202,10 @@ function updateHazards(dt) {
   const p = state.player;
   for (const h of [...state.hazards]) {
     h.life -= dt;
+    if (h.warnMax === undefined) h.warnMax = h.warn;
+    const wasArming = h.warn > 0;
     h.warn = Math.max(0, h.warn - dt);
+    if (wasArming && h.warn <= 0 && h.owner !== "player") hazardImpact(h);
     h.tick = Math.max(0, (h.tick || 0) - dt);
     if (h.life <= 0) {
       state.hazards.splice(state.hazards.indexOf(h), 1);
@@ -5872,7 +5888,14 @@ function drawHazards() {
     ctx.save();
     if (h.warn > 0) {
       // Arming telegraph: pulsing rotating dashed ring + swelling core.
+      const prog = 1 - h.warn / (h.warnMax || h.warn || 1);
       const pulse = 0.5 + Math.sin(now / 90) * 0.5;
+      // Ground shadow grows and darkens as the falling object nears.
+      ctx.globalAlpha = 0.22 + prog * 0.4;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, r * (0.22 + prog * 0.5), r * (0.12 + prog * 0.28), 0, 0, TWO_PI);
+      ctx.fill();
       ctx.globalAlpha = 0.5 + pulse * 0.35;
       ctx.strokeStyle = "#ffe8ad";
       ctx.setLineDash([10 * VIEW_SCALE, 8 * VIEW_SCALE]);
@@ -5887,6 +5910,40 @@ function drawHazards() {
       ctx.beginPath();
       ctx.arc(s.x, s.y, r * (0.35 + pulse * 0.28), 0, TWO_PI);
       ctx.fill();
+      // The falling payload: accelerating drop with a motion streak.
+      const dropH = (1 - prog) * (1 - prog) * 340 * VIEW_SCALE;
+      if (dropH > 4) {
+        const oy = s.y - dropH;
+        ctx.globalAlpha = 0.55;
+        ctx.strokeStyle = palette.edge;
+        ctx.lineWidth = 4 * VIEW_SCALE;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(s.x, oy - 70 * VIEW_SCALE);
+        ctx.lineTo(s.x, oy);
+        ctx.stroke();
+        ctx.globalAlpha = 0.95;
+        if (h.kind === "bindSeal") {
+          ctx.save();
+          ctx.translate(s.x, oy);
+          ctx.rotate(now / 150);
+          ctx.fillStyle = "#ffe8ad";
+          ctx.strokeStyle = "#b98a2f";
+          ctx.lineWidth = 1.5;
+          ctx.fillRect(-7 * VIEW_SCALE, -11 * VIEW_SCALE, 14 * VIEW_SCALE, 22 * VIEW_SCALE);
+          ctx.strokeRect(-7 * VIEW_SCALE, -11 * VIEW_SCALE, 14 * VIEW_SCALE, 22 * VIEW_SCALE);
+          ctx.restore();
+        } else {
+          const orb = ctx.createRadialGradient(s.x, oy, 2, s.x, oy, 15 * VIEW_SCALE);
+          orb.addColorStop(0, "#fff7e8");
+          orb.addColorStop(0.45, palette.edge);
+          orb.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = orb;
+          ctx.beginPath();
+          ctx.arc(s.x, oy, 15 * VIEW_SCALE, 0, TWO_PI);
+          ctx.fill();
+        }
+      }
     } else {
       // Active zone: soft radial glow + rotating dashed edge + rising sparks.
       const grd = ctx.createRadialGradient(s.x, s.y, r * 0.12, s.x, s.y, r);
@@ -6025,7 +6082,10 @@ function drawDamageText() {
   ctx.textAlign = "center";
   for (const t of state.damageText) {
     const s = worldToScreen(t.x, t.y);
-    ctx.fillStyle = `rgba(255, 238, 150, ${Math.max(0, t.t / 0.45)})`;
+    const age = Math.max(0, 0.45 - t.t);
+    const pop = age < 0.12 ? 1.8 - (age / 0.12) * 0.8 : 1;
+    ctx.font = `${Math.round(16 * pop)}px monospace`;
+    ctx.fillStyle = `rgba(255, 238, 150, ${Math.max(0, Math.min(1, t.t / 0.45))})`;
     ctx.fillText(t.text, s.x, s.y);
   }
 }
