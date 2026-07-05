@@ -1,0 +1,47 @@
+{
+  "request": "REQ-007",
+  "batch": "summons",
+  "generatedBy": "Codex image lane using built-in image generation",
+  "generatedDate": "2026-07-05",
+  "background": "#00ff00 chroma key",
+  "source": {
+    "file": "summons-greenscreen.png",
+    "width": 2172,
+    "height": 724,
+    "pixelFormat": "Format24bppRgb"
+  },
+  "intendedNormalizedTarget": {
+    "columns": 12,
+    "rows": 4,
+    "cellSize": 128,
+    "width": 1536,
+    "height": 512
+  },
+  "rows": [
+    {
+      "index": 0,
+      "id": "moon_cat",
+      "description": "Small moonlit cat talisman spirit with teal accents.",
+      "anchor": "bottom-center"
+    },
+    {
+      "index": 1,
+      "id": "paper_imp",
+      "description": "Folded paper charm imp with warm gold accents.",
+      "anchor": "bottom-center"
+    },
+    {
+      "index": 2,
+      "id": "bell_spirit",
+      "description": "Floating bell-and-ribbon spirit with pale blue accents.",
+      "anchor": "visual-center"
+    },
+    {
+      "index": 3,
+      "id": "shadow_moth",
+      "description": "Dark moth spirit with violet accents.",
+      "anchor": "visual-center"
+    }
+  ],
+  "handoff": "Claude should crop/normalize, remove green matte, verify 48 placements, and wire summon ids only after runtime integration work. Codex did not edit runtime code."
+}

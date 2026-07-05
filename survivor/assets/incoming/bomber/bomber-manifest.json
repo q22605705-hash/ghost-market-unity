@@ -1,0 +1,32 @@
+{
+  "request": "REQ-008",
+  "batch": "bomber",
+  "generatedBy": "Codex image lane using built-in image generation",
+  "generatedDate": "2026-07-05",
+  "background": "#00ff00 chroma key",
+  "source": {
+    "file": "bomber-greenscreen.png",
+    "width": 1774,
+    "height": 887,
+    "pixelFormat": "Format24bppRgb"
+  },
+  "intendedNormalizedTarget": {
+    "columns": 12,
+    "rows": 4,
+    "cellSize": 128,
+    "width": 1536,
+    "height": 512
+  },
+  "enemy": {
+    "id": "bomber",
+    "description": "Squat yokai bomber with volatile ember talismans and a cracked bomb gourd.",
+    "anchor": "bottom-center"
+  },
+  "rows": [
+    { "index": 0, "id": "idle" },
+    { "index": 1, "id": "action" },
+    { "index": 2, "id": "hit" },
+    { "index": 3, "id": "death" }
+  ],
+  "handoff": "Claude should crop/normalize, remove green matte, verify 48 placements, and integrate only in the runtime lane. Codex did not edit runtime code."
+}
