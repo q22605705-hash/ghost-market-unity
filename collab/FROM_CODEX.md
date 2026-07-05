@@ -81,7 +81,7 @@ Both count as elite kills, appear on the minimap, and expose `bindSeals`/`player
   - `talisman_binder` / `縛符師`: debuff/pathing elite with temporary slow seal traps.
 - Handoff: Claude can translate these into `GAME_CONFIG.enemyProfiles`, spawn rules, readable hit-source labels, and tests. Codex did not edit runtime code.
 
-## ART-REQ-003A - Mirror Lantern sprite sheet source    status: ready
+## ART-REQ-003A - Mirror Lantern sprite sheet source    status: done (integrated 2026-07-03)
 
 - Request: REQ-003
 - Enemy: `mirror_lantern` / Mirror Lantern
@@ -95,7 +95,7 @@ Both count as elite kills, appear on the minimap, and expose `bindSeals`/`player
 - Anchor intent: stable floating visual center / bottom-center body anchor
 - Handoff: Claude should crop/normalize, remove green matte, verify 48 placements, then integrate as bespoke art for `mirror_lantern`. Codex did not edit `survivor/game.js`, scripts, package files, or runtime metadata.
 
-## ART-REQ-003B - Talisman Binder sprite sheet source    status: ready
+## ART-REQ-003B - Talisman Binder sprite sheet source    status: done (integrated 2026-07-03)
 
 - Request: REQ-003
 - Enemy: `talisman_binder` / Talisman Binder
@@ -109,7 +109,7 @@ Both count as elite kills, appear on the minimap, and expose `bindSeals`/`player
 - Anchor intent: bottom-center for grounded frames
 - Handoff: Claude should crop/normalize, remove green matte, verify 48 placements, then integrate as bespoke art for `talisman_binder`. Codex did not edit `survivor/game.js`, scripts, package files, or runtime metadata.
 
-## ART-REQ-004 - Hero complete action sheet source    status: ready
+## ART-REQ-004 - Hero complete action sheet source    status: done (integrated 2026-07-04)
 
 - Request: REQ-004
 - Character: hero cat talisman survivor
@@ -123,7 +123,7 @@ Both count as elite kills, appear on the minimap, and expose `bindSeals`/`player
 - Anchor intent: bottom-center for grounded hero frames
 - Handoff: Claude should crop/normalize, remove green matte, verify 72 placements, then integrate the expanded hero rows so attack/hit/dash/death no longer rely only on VFX. Codex did not edit `survivor/game.js`, scripts, package files, or runtime metadata.
 
-## ART-REQ-005 - Final boss sprite sheet source    status: ready
+## ART-REQ-005 - Final boss sprite sheet source    status: done (integrated 2026-07-04)
 
 - Request: REQ-005
 - Enemy: `final_boss` / moon-seal final boss
@@ -137,7 +137,7 @@ Both count as elite kills, appear on the minimap, and expose `bindSeals`/`player
 - Anchor intent: stable bottom-center / visual-center boss anchor
 - Handoff: Claude should crop/normalize, remove green matte, verify 48 placements, then integrate as bespoke art for the final boss. Codex did not edit `survivor/game.js`, scripts, package files, or runtime metadata.
 
-## ART-BOSS-001 - Regular boss sprite sheet source    status: ready
+## ART-BOSS-001 - Regular boss sprite sheet source    status: done (integrated 2026-07-04)
 
 - Request: user-selected option B after REQ-005
 - Enemy: `boss` / regular non-final Boss
@@ -151,7 +151,7 @@ Both count as elite kills, appear on the minimap, and expose `bindSeals`/`player
 - Anchor intent: stable bottom-center grounded boss anchor
 - Handoff: Claude should crop/normalize, remove green matte, verify 48 placements, then integrate as bespoke art for the regular non-final `boss`. Codex did not edit `survivor/game.js`, scripts, package files, or runtime metadata.
 
-## ART-ICONS-001 - Batch D UI icon roster source    status: ready
+## ART-ICONS-001 - Batch D UI icon roster source    status: done (integrated 2026-07-04)
 
 - Request: Batch D UI icon roster
 - File: `survivor/assets/incoming/icons/ui-icons-roster-greenscreen.png`
