@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "hud-clean-20260704";
+const ASSET_VERSION = "threat-quiet-20260704";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -5939,9 +5939,11 @@ function drawTutorialQuestPanel() {
 
 function drawThreatWarning() {
   const summary = threatSummary();
-  // Only show the full box for a genuine active threat; routine hits just get
-  // the small direction arrows so the panel stops crowding the left side.
-  if (!summary.active) {
+  // The box is reserved for real emergencies (boss casts, close bullets,
+  // hazards). Routine proximity/hits only get the edge arrows — in practice
+  // `active` is true for the whole fight, so gating on it showed the box
+  // constantly and crowded the left side.
+  if (summary.level !== "danger") {
     drawThreatDirectionIndicators(summary);
     return;
   }
@@ -6035,28 +6037,31 @@ function drawThreatDirectionIndicators(summary = threatSummary()) {
   if (!summary.nearest || !state.player) return;
   const s = worldToScreen(summary.nearest.x, summary.nearest.y);
   const offscreen = s.x < 32 || s.x > W - 32 || s.y < 32 || s.y > H - 32;
-  if (!offscreen && summary.nearest.distance > 180) return;
+  // On-screen threats are already visible — the big jumping arrow for nearby
+  // enemies was pure noise. Only point at offscreen dangers.
+  if (!offscreen || summary.nearest.urgency < 66) return;
   const dx = summary.nearest.x - state.player.x;
   const dy = summary.nearest.y - state.player.y;
   const a = Math.atan2(dy, dx);
   const x = clamp(W / 2 + Math.cos(a) * (W / 2 - 96), 78, W - 78);
-  const y = clamp(H / 2 + Math.sin(a) * (H / 2 - 112), 88, H - 118);
+  const y = clamp(H / 2 + Math.sin(a) * (H / 2 - 112), 130, H - 118);
   ctx.save();
+  ctx.globalAlpha = 0.72;
   ctx.translate(x, y);
   ctx.rotate(a);
   ctx.fillStyle = summary.color;
   ctx.strokeStyle = "#fff4d8";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(28, 0);
-  ctx.lineTo(-16, -15);
-  ctx.lineTo(-8, 0);
-  ctx.lineTo(-16, 15);
+  ctx.moveTo(17, 0);
+  ctx.lineTo(-10, -9);
+  ctx.lineTo(-5, 0);
+  ctx.lineTo(-10, 9);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
   ctx.rotate(-a);
-  center(summary.nearest.label.slice(0, 4), 0, 34, 11, "#fff4d8");
+  center(summary.nearest.label.slice(0, 4), 0, 22, 10, "#fff4d8");
   ctx.restore();
 }
 

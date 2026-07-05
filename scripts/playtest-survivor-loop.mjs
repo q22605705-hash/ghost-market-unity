@@ -341,10 +341,18 @@ async function eliteEnemies(page) {
     throw new Error(`Mirror lantern telegraph not surfaced: ${JSON.stringify(cast.castingEnemies)}`);
   }
   await page.screenshot({ path: path.join(artifactRoot, "loop-elite-mirror-telegraph.png"), fullPage: true });
+  // The projectile can hit the player (and vanish) or the lantern can die
+  // before a single check lands, so sample in small steps: pass if bullets
+  // ever rise OR the player records a 鏡燈法彈 hit.
   const bulletsBefore = cast.enemyBullets;
-  await page.evaluate(() => window.advanceTime(650));
-  const fired = JSON.parse(await page.evaluate(() => window.render_game_to_text()));
-  if (fired.enemyBullets <= bulletsBefore) {
+  let mirrorFired = false;
+  let fired = cast;
+  for (let i = 0; i < 6 && !mirrorFired; i++) {
+    await page.evaluate(() => window.advanceTime(150));
+    fired = JSON.parse(await page.evaluate(() => window.render_game_to_text()));
+    if (fired.enemyBullets > bulletsBefore || /鏡燈/.test(fired.threat?.lastHit?.source || "")) mirrorFired = true;
+  }
+  if (!mirrorFired) {
     throw new Error(`Mirror shot did not spawn a projectile: before ${bulletsBefore}, after ${fired.enemyBullets}`);
   }
 
