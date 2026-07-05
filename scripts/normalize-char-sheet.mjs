@@ -67,7 +67,10 @@ function renderCell(cx, cy) {
   }
   return buf;
 }
-// Find the body box: columns with >= MIN_COL_PIXELS opaque pixels.
+// Anchor each frame by its FEET, not its whole-body bounding box: the bbox
+// centre shifts whenever an arm/tail/prop swings, which made the body jitter
+// frame-to-frame. Feet stay planted, so aligning the feet centroid keeps the
+// animation coherent while the upper body moves freely.
 function bodyBox(buf) {
   const colCount = new Array(CELL).fill(0);
   for (let x = 0; x < CELL; x++) for (let y = 0; y < CELL; y++) if (buf[((y * CELL + x) << 2) + 3] > 60) colCount[x]++;
@@ -79,7 +82,15 @@ function bodyBox(buf) {
   if (first < 0) return null;
   let footY = 0;
   for (let x = first; x <= last; x++) for (let y = 0; y < CELL; y++) if (buf[((y * CELL + x) << 2) + 3] > 60 && y > footY) footY = y;
-  return { centerX: Math.round((first + last) / 2), footY };
+  // Feet centroid: opaque pixels in the bottom 14px of the body, body columns only.
+  let sx = 0, n = 0;
+  for (let y = Math.max(0, footY - 14); y <= footY; y++) {
+    for (let x = first; x <= last; x++) {
+      if (colCount[x] >= MIN_COL_PIXELS && buf[((y * CELL + x) << 2) + 3] > 60) { sx += x; n++; }
+    }
+  }
+  const centerX = n ? sx / n : (first + last) / 2;
+  return { centerX: Math.round(centerX), footY };
 }
 
 const out = new PNG({ width: COLS * CELL, height: ROWS * CELL });

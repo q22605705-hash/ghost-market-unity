@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "threat-quiet-20260704";
+const ASSET_VERSION = "feet-anchor-20260705";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -6416,6 +6416,23 @@ function drawMenu() {
   if (heroSheetReady()) drawHeroSprite(HERO_ROWS.idle, Math.floor(state.time * 6) % 12, 560, 558, 305, false, 1);
   else drawSprite(ROW.heroIdle, 0, 560, 558, 305, false, 0, 1, 67, 122);
 
+  const tabOpen = state.menuTab !== "home";
+  if (!tabOpen) {
+    // Home widgets only when no tab panel is open — drawing them under the
+    // panel made the screen read as overlapping chaos.
+    drawSideButton(1032, 118, "任務", claimableCount ? `可領 ${claimableCount}` : selectedMissionChoice().title);
+    drawSideButton(1032, 204, "狀態", `最高 ${saveData.bestGarden || 0}`);
+    drawMissionPicker(800, 318, fragment);
+    drawRunPreviewPanel(38, 144);
+    drawGrowthDashboardPanel(38, 302);
+    drawHomeGuidancePanel(38, 432, 178);
+    drawPlayButton(800, 540, fragment);
+    text(`裝備：${equipment.name}`, 38, 94, 17, "#fff4d8");
+    text(equipment.desc, 38, 118, 15, "#d4dfdc");
+  } else {
+    drawMenuTabPanel();
+  }
+
   drawBottomDock();
   drawHomeNav(72, 574, "記憶", "◆", state.menuTab === "memory");
   drawHomeNav(176, 574, "屬性", "◇", state.menuTab === "stats");
@@ -6423,18 +6440,7 @@ function drawMenu() {
   drawHomeNav(384, 574, "商店", "▥", state.menuTab === "shop");
   drawHomeNav(488, 574, "召喚", "✦", state.menuTab === "summon");
 
-  drawSideButton(1032, 118, "任務", claimableCount ? `可領 ${claimableCount}` : selectedMissionChoice().title);
-  drawSideButton(1032, 204, "狀態", `最高 ${saveData.bestGarden || 0}`);
-  drawMissionPicker(800, 318, fragment);
-  drawRunPreviewPanel(38, 144);
-  drawGrowthDashboardPanel(38, 302);
-  drawHomeGuidancePanel(38, 432, 178);
-  drawPlayButton(800, 540, fragment);
-  if (state.menuTab !== "home") drawMenuTabPanel();
-
-  center(state.mode === "loading" ? "載入素材中..." : "選擇模式後按開始探索，Esc 可在戰鬥中暫停", 716, 666, 18, "#efe7ce");
-  text(`裝備：${equipment.name}`, 38, 94, 17, "#fff4d8");
-  text(equipment.desc, 38, 118, 15, "#d4dfdc");
+  center(state.mode === "loading" ? "載入素材中..." : tabOpen ? "Esc 返回首頁" : "選擇模式後按開始探索，Esc 可在戰鬥中暫停", 716, 666, 18, "#efe7ce");
 }
 
 function drawMenuTabPanel() {
@@ -6453,13 +6459,10 @@ function drawMenuTabPanel() {
 
 function drawMenuTabScrim() {
   ctx.save();
-  const grd = ctx.createLinearGradient(560, 0, 1120, 0);
-  grd.addColorStop(0, "rgba(3, 8, 10, 0.10)");
-  grd.addColorStop(0.18, "rgba(3, 8, 10, 0.62)");
-  grd.addColorStop(1, "rgba(3, 8, 10, 0.88)");
-  ctx.fillStyle = grd;
-  ctx.fillRect(560, 82, 548, 516);
-  ctx.fillStyle = "rgba(5, 13, 16, 0.82)";
+  // Full-screen dim so the open panel is the only readable layer.
+  ctx.fillStyle = "rgba(3, 8, 10, 0.66)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "rgba(5, 13, 16, 0.9)";
   ctx.fillRect(596, 104, 410, 428);
   ctx.strokeStyle = "rgba(126, 218, 194, 0.18)";
   ctx.strokeRect(596.5, 104.5, 409, 427);
@@ -8084,13 +8087,15 @@ function clickAt(x, y) {
     return;
   }
   if (state.mode === "menu") {
-    const inPlay = x >= 800 && x <= 1130 && y >= 540 && y <= 608;
-    const missionIndex = x >= 800 && x <= 1130 && y >= 318 && y <= 482 ? Math.floor((y - 318) / 58) : -1;
-    const dashboardIndex = x >= 52 && x <= 364 && y >= 362 && y <= 400 ? Math.floor((x - 52) / 104) : -1;
-    const guidancePrimary = x >= 50 && x <= 358 && y >= 474 && y <= 528;
-    const guidanceIndex = x >= 50 && x <= 358 && y >= 550 && y <= 606 ? Math.floor((y - 550) / 28) : -1;
-    const inMission = x >= 1032 && x <= 1182 && y >= 118 && y <= 182;
-    const inStatus = x >= 1032 && x <= 1182 && y >= 204 && y <= 268;
+    // Home widgets are hidden (and must not react) while a tab panel is open.
+    const homeActive = state.menuTab === "home";
+    const inPlay = homeActive && x >= 800 && x <= 1130 && y >= 540 && y <= 608;
+    const missionIndex = homeActive && x >= 800 && x <= 1130 && y >= 318 && y <= 482 ? Math.floor((y - 318) / 58) : -1;
+    const dashboardIndex = homeActive && x >= 52 && x <= 364 && y >= 362 && y <= 400 ? Math.floor((x - 52) / 104) : -1;
+    const guidancePrimary = homeActive && x >= 50 && x <= 358 && y >= 474 && y <= 528;
+    const guidanceIndex = homeActive && x >= 50 && x <= 358 && y >= 550 && y <= 606 ? Math.floor((y - 550) / 28) : -1;
+    const inMission = homeActive && x >= 1032 && x <= 1182 && y >= 118 && y <= 182;
+    const inStatus = homeActive && x >= 1032 && x <= 1182 && y >= 204 && y <= 268;
     const navTabs = [
       ["memory", 48, 542, 72, 78],
       ["stats", 152, 542, 72, 78],
