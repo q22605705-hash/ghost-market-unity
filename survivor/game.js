@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "no-ghost-20260706";
+const ASSET_VERSION = "clear-view-20260706";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -543,6 +543,8 @@ const AMBIENCE_NODES = [
 const keys = new Set();
 const pressed = new Set();
 const pointer = { x: W / 2, y: H / 2, down: false };
+// Virtual controls are only useful on touch devices; desktop plays with keys.
+const COARSE_POINTER = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
 const touchControl = {
   active: false,
   pointerId: null,
@@ -4042,6 +4044,7 @@ function chooseUpgrade(i) {
     });
   }
   opt.apply();
+  state.buildPanelT = 6; // surface the build panel briefly after each pick
   if (state.tutorialProgress) state.tutorialProgress.upgrades += 1;
   const evolved = maybeEvolveSkill(opt, nextLevel);
   state.options = [];
@@ -4345,6 +4348,7 @@ function updatePlayer(dt) {
   p.attackT = Math.max(0, (p.attackT || 0) - dt);
   p.dashAnimT = Math.max(0, (p.dashAnimT || 0) - dt);
   p.hurtT = Math.max(0, (p.hurtT || 0) - dt);
+  state.buildPanelT = Math.max(0, (state.buildPanelT || 0) - dt);
   p.hp = Math.min(state.stats.maxHp, p.hp);
   p.shootT -= dt;
   if (p.shootT <= 0) {
@@ -5760,8 +5764,12 @@ function drawBullets() {
   }
   for (const b of state.enemyBullets) {
     const s = worldToScreen(b.x, b.y);
-    const size = (b.kind === "boss" ? 78 : 66) * VIEW_SCALE;
-    drawSprite(ROW.fire, Math.floor(b.anim) % 12, s.x, s.y, size, false, b.angle);
+    // Single stable projectile frame (the legacy fire row's frames are
+    // unrelated drawings and strobed when cycled); life comes from rotation
+    // and a subtle scale pulse instead.
+    const pulse = 1 + Math.sin(b.anim * 2.2) * 0.08;
+    const size = (b.kind === "boss" ? 78 : 66) * VIEW_SCALE * pulse;
+    drawSprite(ROW.fire, 0, s.x, s.y, size, false, b.angle);
     if (b.kind === "boss") {
       ctx.save();
       ctx.globalAlpha = 0.45;
@@ -5903,7 +5911,13 @@ function drawHud() {
   const phase = currentStagePhase();
   const readout = combatReadoutSummary();
   const focus = state.storyFocus || storyRunFocus();
-  panel(18, 16, 500, 156);
+  // Lighter fill than the shared panel(): this is the biggest HUD block and
+  // the battlefield should stay visible through it.
+  ctx.fillStyle = "rgba(5, 10, 13, 0.55)";
+  ctx.fillRect(18, 16, 500, 156);
+  ctx.strokeStyle = "rgba(49, 68, 74, 0.8)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(18, 16, 500, 156);
   text(`WAVE ${Math.max(1, Math.ceil(state.kills / 20))}`, 34, 40, 20, "#fff4d8");
   text(`Lv.${state.level}`, 146, 40, 18);
   text(`${state.runType === "garden" ? "月庭" : "培育"} ${state.kills}/${state.targetKills}`, 232, 40, 18, "#d9e3df");
@@ -5924,7 +5938,7 @@ function drawHud() {
   drawPlayerStatusIcons(p);
   if (state.mode === "playing") {
     drawCombatTracker();
-    drawBuildProgressPanel();
+    if ((state.buildPanelT || 0) > 0 || buildProgressSummary().nextEvolution?.readyNext) drawBuildProgressPanel();
     drawCombatRadar();
     drawPhaseBanner(phase);
     drawBossHud();
@@ -5936,7 +5950,7 @@ function drawHud() {
   if (state.mode === "playing") drawChallengeToast();
   if (state.mode === "playing") drawTutorialHint();
   if (state.mode === "playing") drawTutorialQuestPanel();
-  if (state.mode === "playing") drawVirtualControls();
+  if (state.mode === "playing" && (COARSE_POINTER || touchControl.active)) drawVirtualControls();
   text(state.message, state.mode === "playing" ? 224 : 26, H - 28, 16, "#d8e3df");
   text(`v ${ASSET_VERSION}`, 10, H - 8, 10, "rgba(190, 210, 205, 0.35)");
 }
