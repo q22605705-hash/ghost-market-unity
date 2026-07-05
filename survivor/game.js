@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "clear-view-20260706";
+const ASSET_VERSION = "vfx-juice-20260706";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -3364,6 +3364,68 @@ function addEffect(kind, x, y, size = 120, life = 0.45, angle = 0, alpha = 0.95)
   trimOldest(state.effects, ENTITY_BUDGETS.effects, "trimmedEffects");
 }
 
+// ---- Procedural juice: particles + shockwave rings (visual only) ----
+function spawnParticles(x, y, color, count = 10, speed = 140, life = 0.55, size = 4, up = 0) {
+  if (!state.particles) state.particles = [];
+  for (let i = 0; i < count && state.particles.length < 260; i++) {
+    const a = Math.random() * TWO_PI;
+    const v = speed * (0.35 + Math.random() * 0.65);
+    state.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - up, color, life: life * (0.6 + Math.random() * 0.4), maxLife: life, size: size * (0.6 + Math.random() * 0.8) });
+  }
+}
+function spawnRing(x, y, color, maxR = 120, life = 0.42, width = 3) {
+  if (!state.rings) state.rings = [];
+  if (state.rings.length < 24) state.rings.push({ x, y, color, maxR, life, maxLife: life, width });
+}
+function updateJuice(dt) {
+  if (state.particles) {
+    for (const p of [...state.particles]) {
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= 0.9 ** (dt * 60);
+      p.vy *= 0.9 ** (dt * 60);
+      if (p.life <= 0) state.particles.splice(state.particles.indexOf(p), 1);
+    }
+  }
+  if (state.rings) {
+    for (const r of [...state.rings]) {
+      r.life -= dt;
+      if (r.life <= 0) state.rings.splice(state.rings.indexOf(r), 1);
+    }
+  }
+}
+function drawJuice() {
+  if (!state.rings?.length && !state.particles?.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  if (state.rings) {
+    for (const r of state.rings) {
+      const t = 1 - r.life / r.maxLife;
+      const sc = worldToScreen(r.x, r.y);
+      ctx.globalAlpha = (1 - t) * 0.85;
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = Math.max(1, r.width * (1 - t * 0.6)) * VIEW_SCALE;
+      ctx.beginPath();
+      ctx.arc(sc.x, sc.y, Math.max(2, r.maxR * (0.15 + 0.85 * t)) * VIEW_SCALE, 0, TWO_PI);
+      ctx.stroke();
+    }
+  }
+  if (state.particles) {
+    for (const p of state.particles) {
+      const t = Math.max(0, p.life / p.maxLife);
+      const sc = worldToScreen(p.x, p.y);
+      ctx.globalAlpha = t * 0.9;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(sc.x, sc.y, Math.max(0.8, p.size * t) * VIEW_SCALE, 0, TWO_PI);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+
 function applyElementHit(e, b) {
   const element = b.element || state.stats.element;
   if (!element) return;
@@ -3580,6 +3642,8 @@ function awardStrongEnemyLoot(e) {
 
 function explodeBomber(e) {
   addEffect("fireBurst", e.x, e.y - 8, 150, 0.45);
+  spawnRing(e.x, e.y, "#fbbf24", 110, 0.45, 4);
+  spawnParticles(e.x, e.y, "#f59e0b", 18, 260, 0.6, 5);
   state.hazards.push({
     kind: "bomberBlast",
     x: e.x,
@@ -5043,6 +5107,8 @@ function resolveBossSpecial(e, pattern) {
       });
     }
     addEffect("divineJudgment", e.x, e.y - 20, 210, 0.55);
+    spawnRing(e.x, e.y, "#d946ef", 190, 0.55, 5);
+    spawnParticles(e.x, e.y, "#f0abfc", 22, 300, 0.6, 4);
     state.shake = 8;
     return;
   }
@@ -5061,6 +5127,7 @@ function resolveBossSpecial(e, pattern) {
     });
   }
   addEffect("voidRift", e.x, e.y - 12, 190, 0.55);
+  spawnRing(e.x, e.y, "#c084fc", 150, 0.5, 4);
   state.shake = 7;
 }
 
@@ -5090,6 +5157,8 @@ function updateBullets(dt) {
     if (Math.hypot(state.player.x - b.x, state.player.y - b.y) < state.player.radius + b.r && state.player.invuln <= 0) {
       state.player.hp -= b.damage;
       state.player.invuln = 0.55 + state.stats.hurtGrace;
+      spawnParticles(b.x, b.y, "#ffb4a8", 8, 190, 0.4, 4);
+      spawnRing(b.x, b.y, "#ffb4a8", 46, 0.3, 3);
       triggerPlayerHurtFeedback(b.damage, b.source || (b.kind === "boss" ? "Boss 彈幕" : "遠程彈"));
       b.life = -1;
     }
@@ -5151,6 +5220,7 @@ function updateHazards(dt) {
 }
 
 function updateEffects(dt) {
+  updateJuice(dt);
   for (const fx of [...state.effects]) {
     fx.life -= dt;
     if (fx.life <= 0) state.effects.splice(state.effects.indexOf(fx), 1);
@@ -5546,6 +5616,7 @@ function drawEffects() {
     const frame = Math.min(11, Math.floor(progress * 12));
     drawSkillEffect(fx.kind, frame, s.x, s.y, fx.size * VIEW_SCALE * (1 + progress * 0.12), fx.angle, fx.alpha * t);
   }
+  drawJuice();
 }
 
 function drawEnemies() {
@@ -5769,6 +5840,10 @@ function drawBullets() {
     // and a subtle scale pulse instead.
     const pulse = 1 + Math.sin(b.anim * 2.2) * 0.08;
     const size = (b.kind === "boss" ? 78 : 66) * VIEW_SCALE * pulse;
+    // Motion streak: fading afterimages behind the projectile.
+    for (let k = 1; k <= 2; k++) {
+      drawSprite(ROW.fire, 0, s.x - Math.cos(b.angle) * 13 * k * VIEW_SCALE, s.y - Math.sin(b.angle) * 13 * k * VIEW_SCALE, size * (1 - k * 0.18), false, b.angle, 0.3 / k);
+    }
     drawSprite(ROW.fire, 0, s.x, s.y, size, false, b.angle);
     if (b.kind === "boss") {
       ctx.save();
@@ -5784,22 +5859,59 @@ function drawBullets() {
 }
 
 function drawHazards() {
+  const now = performance.now();
   for (const h of state.hazards) {
     const s = worldToScreen(h.x, h.y);
     const r = h.r * VIEW_SCALE;
+    const palette = h.owner === "player"
+      ? { fill: "rgba(95, 239, 56, 0.22)", edge: "#87ef38", spark: "#b7f56e" }
+      : h.kind === "bossSeal" ? { fill: "rgba(178, 92, 255, 0.30)", edge: "#c084fc", spark: "#e3b8ff" }
+      : h.kind === "bindSeal" ? { fill: "rgba(196, 181, 253, 0.24)", edge: "#c4b5fd", spark: "#ffe18a" }
+      : h.kind === "poisonCloud" ? { fill: "rgba(74, 222, 128, 0.22)", edge: "#4ade80", spark: "#a7f3d0" }
+      : { fill: "rgba(245, 158, 11, 0.24)", edge: "#f59e0b", spark: "#fbbf24" };
     ctx.save();
-    ctx.globalAlpha = h.warn > 0 ? 0.28 + Math.sin(performance.now() / 80) * 0.08 : 0.42;
-    ctx.fillStyle = h.owner === "player" ? "rgba(95, 239, 56, 0.24)" : h.kind === "bossSeal" ? "rgba(178, 92, 255, 0.34)" : h.kind === "bindSeal" ? "rgba(196, 181, 253, 0.26)" : "rgba(217, 70, 239, 0.28)";
-    ctx.strokeStyle = h.owner === "player" ? "#87ef38" : h.warn > 0 ? "#ffe8ad" : h.kind === "bindSeal" ? "#c4b5fd" : "#d946ef";
-    ctx.lineWidth = h.warn > 0 ? 3 : 2;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, r, 0, TWO_PI);
-    ctx.fill();
-    ctx.stroke();
-    ctx.globalAlpha = 0.7;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, Math.max(8, r * (h.warn > 0 ? h.warn : 0.18)), 0, TWO_PI);
-    ctx.stroke();
+    if (h.warn > 0) {
+      // Arming telegraph: pulsing rotating dashed ring + swelling core.
+      const pulse = 0.5 + Math.sin(now / 90) * 0.5;
+      ctx.globalAlpha = 0.5 + pulse * 0.35;
+      ctx.strokeStyle = "#ffe8ad";
+      ctx.setLineDash([10 * VIEW_SCALE, 8 * VIEW_SCALE]);
+      ctx.lineDashOffset = -now / 14;
+      ctx.lineWidth = 3 * VIEW_SCALE;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, r, 0, TWO_PI);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.25 + pulse * 0.22;
+      ctx.fillStyle = palette.fill;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, r * (0.35 + pulse * 0.28), 0, TWO_PI);
+      ctx.fill();
+    } else {
+      // Active zone: soft radial glow + rotating dashed edge + rising sparks.
+      const grd = ctx.createRadialGradient(s.x, s.y, r * 0.12, s.x, s.y, r);
+      grd.addColorStop(0, palette.fill);
+      grd.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, r, 0, TWO_PI);
+      ctx.fill();
+      ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = palette.edge;
+      ctx.setLineDash([14 * VIEW_SCALE, 10 * VIEW_SCALE]);
+      ctx.lineDashOffset = now / 18;
+      ctx.lineWidth = 2.5 * VIEW_SCALE;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, r * 0.96, 0, TWO_PI);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (h.owner !== "player" && Math.random() < 0.3 && (state.particles?.length || 0) < 200) {
+        const a = Math.random() * TWO_PI;
+        const rr = Math.random() * h.r * 0.8;
+        spawnParticles(h.x + Math.cos(a) * rr, h.y + Math.sin(a) * rr, palette.spark, 1, 24, 0.7, 3, 34);
+      }
+    }
     ctx.restore();
   }
 }
@@ -5827,7 +5939,19 @@ function elementName(element) {
 }
 
 function drawElementTrail(b, s) {
-  if (!b.element) return;
+  if (!b.element) {
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = "#ffe8ad";
+    ctx.lineWidth = 3 * VIEW_SCALE;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(s.x - Math.cos(b.angle) * 22 * VIEW_SCALE, s.y - Math.sin(b.angle) * 22 * VIEW_SCALE);
+    ctx.lineTo(s.x - Math.cos(b.angle) * 6 * VIEW_SCALE, s.y - Math.sin(b.angle) * 6 * VIEW_SCALE);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   ctx.save();
   ctx.globalAlpha = 0.72;
   ctx.strokeStyle = elementColor(b.element);
