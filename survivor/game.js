@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "all-proc-vfx-20260707";
+const ASSET_VERSION = "commercial-feel-20260707";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -3156,6 +3156,7 @@ function spawnEnemy(kind = "ghoul", overrides = {}) {
   };
   const enemy = {
     id: nextEnemyId++,
+    spawnT: 0.3,
     kind,
     ...pos,
     ...tuned,
@@ -5028,6 +5029,7 @@ function updateEnemies(dt) {
   applyWardenAuras();
   for (const e of [...state.enemies]) {
     e.anim += dt * 6;
+    e.spawnT = Math.max(0, (e.spawnT || 0) - dt);
     e.hit = Math.max(0, e.hit - dt);
     if (e.finalBoss) updateFinalBossPhaseBreaks(e);
     if (e.burn > 0) {
@@ -5688,7 +5690,7 @@ function eliteActing(e) {
   return false;
 }
 
-function drawEliteSprite(kind, row, frame, x, y, size, flip, alpha = 1) {
+function drawEliteSprite(kind, row, frame, x, y, size, flip, alpha = 1, rot = 0, squash = 0, flash = false) {
   const sheet = ELITE_SHEETS[kind];
   const cell = 128;
   const sx = (frame % 12) * cell;
@@ -5696,8 +5698,20 @@ function drawEliteSprite(kind, row, frame, x, y, size, flip, alpha = 1) {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(Math.round(x), Math.round(y));
-  if (flip) ctx.scale(-1, 1);
+  if (rot) ctx.rotate(rot);
+  ctx.scale((flip ? -1 : 1) * (1 + squash * 0.05), 1 - squash * 0.07);
+  if (flash) ctx.filter = "brightness(2.3) saturate(0.55)";
   ctx.drawImage(sheet.img, sx, sy, cell, cell, -(64 / cell) * size, -(sheet.anchorY / cell) * size, size, size);
+  ctx.restore();
+}
+// Grounding shadow — the single biggest "not a pasted picture" cue.
+function drawGroundShadow(x, y, w, lift = 0, alpha = 0.34) {
+  ctx.save();
+  ctx.globalAlpha = alpha * (1 - Math.min(0.5, lift / 20));
+  ctx.fillStyle = "#000";
+  ctx.beginPath();
+  ctx.ellipse(x, y + 2 * VIEW_SCALE, w * (1 - lift * 0.012), w * 0.34, 0, 0, TWO_PI);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -5734,6 +5748,8 @@ function drawPlayer() {
     ctx.restore();
   }
   const animFrame = Math.floor(p.anim) % 12;
+  const heroBob = moving ? Math.abs(Math.sin(p.anim * 3.1)) * 2.8 * VIEW_SCALE : Math.sin(performance.now() / 520) * 1.1 * VIEW_SCALE;
+  drawGroundShadow(s.x, s.y, 34 * VIEW_SCALE, heroBob / VIEW_SCALE, 0.4);
   if (heroSheetReady()) {
     let row;
     let frame;
@@ -5752,7 +5768,7 @@ function drawPlayer() {
     }
     // No cross-frame fading: overlapping two poses reads as ghosting/double
     // exposure on the character. Stabilized rows step cleanly on their own.
-    drawHeroSprite(row, frame, s.x, s.y, 120 * VIEW_SCALE, p.facing < 0, alpha);
+    drawHeroSprite(row, frame, s.x, s.y - heroBob, 120 * VIEW_SCALE, p.facing < 0, alpha);
   } else {
     const row = moving ? ROW.heroRun : ROW.heroIdle;
     const anchor = resolveFrameAnchor(row, animFrame, DEFAULT_ANCHOR);
@@ -5959,15 +5975,24 @@ function drawEnemies() {
     const frame = Math.floor(e.anim) % 12;
     const anchor = resolveFrameAnchor(row, frame, { x: 64, y: 127 });
     drawEnemyAura(e, s, size);
+    // Commercial-feel integration: grounding shadow, walk bob with wobble and
+    // squash-stretch, spawn pop-in, and a white flash on hit.
+    const bobPhase = e.anim * 2.7 + (e.id % 7);
+    const bob = Math.abs(Math.sin(bobPhase)) * 3.2 * VIEW_SCALE;
+    const wobble = Math.sin(bobPhase) * 0.055;
+    const squash = Math.cos(bobPhase * 2) * 0.5 + 0.5;
+    const spawnP = 1 - Math.min(1, (e.spawnT || 0) / 0.3);
+    const popScale = 0.7 + 0.3 * spawnP;
+    const popAlpha = Math.min(1, spawnP * 1.6);
+    drawGroundShadow(s.x, s.y, size * 0.3 * VIEW_SCALE * popScale, bob / VIEW_SCALE);
     const sheetKey = eliteSheetKey(e);
     if (ELITE_SHEETS[sheetKey] && eliteSheetReady(sheetKey)) {
       const wRow = eliteActing(e) ? ELITE_ROWS.action : e.hit > 0 ? ELITE_ROWS.hit : ELITE_ROWS.idle;
       const flip = e.x > state.player.x;
-      if (e.hit > 0) drawEliteSprite(sheetKey, wRow, frame, s.x, s.y, (size + 8) * VIEW_SCALE, flip, 0.45);
-      drawEliteSprite(sheetKey, wRow, frame, s.x, s.y, size * VIEW_SCALE, flip, style.alpha);
+      drawEliteSprite(sheetKey, wRow, frame, s.x, s.y - bob, size * VIEW_SCALE * popScale, flip, style.alpha * popAlpha, wobble, squash, e.hit > 0);
     } else {
-      if (e.hit > 0) drawSprite(row, frame, s.x, s.y, (size + 8) * VIEW_SCALE, e.x > state.player.x, 0, 0.45, anchor.x, anchor.y);
-      drawSprite(row, frame, s.x, s.y, size * VIEW_SCALE, e.x > state.player.x, 0, style.alpha, anchor.x, anchor.y);
+      if (e.hit > 0) drawSprite(row, frame, s.x, s.y - bob, (size + 8) * VIEW_SCALE, e.x > state.player.x, wobble, 0.45, anchor.x, anchor.y);
+      drawSprite(row, frame, s.x, s.y - bob, size * VIEW_SCALE * popScale, e.x > state.player.x, wobble, style.alpha * popAlpha, anchor.x, anchor.y);
     }
     if (style.mark) center(style.mark, s.x, s.y - size * 0.48 * VIEW_SCALE, 14, style.color);
     ctx.fillStyle = "#1b0b0b";
@@ -6363,6 +6388,18 @@ function drawVfxFrame(image, row, frame, x, y, size = 128, angle = 0, alpha = 1,
 function drawPickups() {
   for (const p of state.pickups) {
     const s = worldToScreen(p.x, p.y);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const pulse = 0.6 + Math.sin(p.t * 6 + p.x) * 0.4;
+    const gr = 14 * VIEW_SCALE * (0.8 + pulse * 0.35);
+    const gg = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, gr);
+    gg.addColorStop(0, "rgba(126, 218, 194, " + (0.35 + pulse * 0.25) + ")");
+    gg.addColorStop(1, "rgba(126, 218, 194, 0)");
+    ctx.fillStyle = gg;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, gr, 0, TWO_PI);
+    ctx.fill();
+    ctx.restore();
     drawSprite(ROW.soul, Math.floor(p.t * 12) % 12, s.x, s.y, 50 * VIEW_SCALE, false, 0, 1, 64, 64);
   }
 }
