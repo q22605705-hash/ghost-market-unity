@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "proj-comet-20260706";
+const ASSET_VERSION = "living-flame-20260707";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -3391,11 +3391,16 @@ function addEffect(kind, x, y, size = 120, life = 0.45, angle = 0, alpha = 0.95)
 // ---- Procedural juice: particles + shockwave rings (visual only) ----
 function spawnParticles(x, y, color, count = 10, speed = 140, life = 0.55, size = 4, up = 0) {
   if (!state.particles) state.particles = [];
-  for (let i = 0; i < count && state.particles.length < 260; i++) {
+  for (let i = 0; i < count && state.particles.length < 420; i++) {
     const a = Math.random() * TWO_PI;
     const v = speed * (0.35 + Math.random() * 0.65);
     state.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - up, color, life: life * (0.6 + Math.random() * 0.4), maxLife: life, size: size * (0.6 + Math.random() * 0.8) });
   }
+}
+function spawnTailParticle(x, y, vx, vy, color, life = 0.3, size = 4) {
+  if (!state.particles) state.particles = [];
+  if (state.particles.length >= 420) return;
+  state.particles.push({ x, y, vx, vy, color, life: life * (0.7 + Math.random() * 0.5), maxLife: life, size: size * (0.7 + Math.random() * 0.6) });
 }
 function spawnRing(x, y, color, maxR = 120, life = 0.42, width = 3) {
   if (!state.rings) state.rings = [];
@@ -3434,6 +3439,64 @@ function updateJuice(dt) {
     }
   }
 }
+// Fully procedural fireball: the silhouette undulates every frame (layered
+// teardrops with noise-wobbled length/width), additively blended — nothing is
+// a static picture. The painted kit is kept only for the impact burst.
+function drawProcFireball(b, s, size) {
+  const boss = b.kind === "boss";
+  const t = b.anim;
+  const R = size * 0.34;
+  const w1 = Math.sin(t * 11.3) * 0.22 + Math.sin(t * 6.1 + 1.7) * 0.14;
+  const w2 = Math.sin(t * 9.7 + 0.8) * 0.18;
+  const tailLen = R * (3.4 + w1 * 1.2);
+  const bodyW = R * (1.15 + w2 * 0.35);
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(b.angle);
+  ctx.globalCompositeOperation = "lighter";
+  // outer flame teardrop
+  const outer = ctx.createLinearGradient(R, 0, -tailLen, 0);
+  if (boss) {
+    outer.addColorStop(0, "rgba(240, 171, 252, 0.85)");
+    outer.addColorStop(0.4, "rgba(168, 85, 247, 0.55)");
+    outer.addColorStop(1, "rgba(88, 28, 135, 0)");
+  } else {
+    outer.addColorStop(0, "rgba(255, 214, 107, 0.9)");
+    outer.addColorStop(0.4, "rgba(255, 122, 40, 0.6)");
+    outer.addColorStop(1, "rgba(160, 30, 10, 0)");
+  }
+  ctx.fillStyle = outer;
+  ctx.beginPath();
+  ctx.moveTo(R, 0);
+  ctx.quadraticCurveTo(R * 0.4, -bodyW, -tailLen * 0.35, -bodyW * (0.55 + w1 * 0.2));
+  ctx.quadraticCurveTo(-tailLen * (0.95 + w2 * 0.15), -bodyW * 0.12, -tailLen, 0);
+  ctx.quadraticCurveTo(-tailLen * (0.95 - w2 * 0.15), bodyW * 0.12, -tailLen * 0.35, bodyW * (0.55 - w1 * 0.2));
+  ctx.quadraticCurveTo(R * 0.4, bodyW, R, 0);
+  ctx.fill();
+  // mid flame
+  const mid = ctx.createLinearGradient(R * 0.7, 0, -tailLen * 0.55, 0);
+  mid.addColorStop(0, boss ? "rgba(250, 232, 255, 0.9)" : "rgba(255, 244, 200, 0.95)");
+  mid.addColorStop(1, boss ? "rgba(192, 132, 252, 0)" : "rgba(255, 160, 60, 0)");
+  ctx.fillStyle = mid;
+  ctx.beginPath();
+  ctx.moveTo(R * 0.8, 0);
+  ctx.quadraticCurveTo(R * 0.3, -bodyW * 0.55, -tailLen * 0.3, -bodyW * (0.28 + w2 * 0.12));
+  ctx.quadraticCurveTo(-tailLen * 0.55, 0, -tailLen * 0.3, bodyW * (0.28 - w2 * 0.12));
+  ctx.quadraticCurveTo(R * 0.3, bodyW * 0.55, R * 0.8, 0);
+  ctx.fill();
+  // white-hot core with radius jitter
+  const coreR = R * (0.62 + Math.sin(t * 14.2) * 0.07);
+  const core = ctx.createRadialGradient(R * 0.25, 0, 1, R * 0.25, 0, coreR);
+  core.addColorStop(0, "rgba(255, 255, 245, 0.95)");
+  core.addColorStop(0.55, boss ? "rgba(240, 171, 252, 0.55)" : "rgba(255, 214, 107, 0.6)");
+  core.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(R * 0.25, 0, coreR, 0, TWO_PI);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawJuice() {
   if (state.projBursts?.length) {
     for (const pb of state.projBursts) {
@@ -5206,9 +5269,21 @@ function updateBullets(dt) {
     b.y += b.vy * dt;
     b.life -= dt;
     b.anim += dt * 12;
-    // Live embers peel off the projectile as it flies.
-    if (Math.random() < dt * 9 && (state.particles?.length || 0) < 220) {
-      spawnParticles(b.x, b.y, b.kind === "boss" ? "#f0abfc" : "#fbbf24", 1, 30, 0.42, 2.6, 12);
+    // Dense living tail: particles stream off the head every frame.
+    if ((state.particles?.length || 0) < 400) {
+      const sp = Math.hypot(b.vx, b.vy) || 1;
+      const dx = b.vx / sp, dy = b.vy / sp;
+      const emits = Math.random() < dt * 60 ? 2 : 1;
+      for (let e = 0; e < emits; e++) {
+        const back = 6 + Math.random() * 14;
+        const jit = (Math.random() - 0.5) * 14;
+        spawnTailParticle(
+          b.x - dx * back - dy * jit, b.y - dy * back + dx * jit,
+          -dx * (40 + Math.random() * 50) - dy * jit * 2, -dy * (40 + Math.random() * 50) + dx * jit * 2,
+          b.kind === "boss" ? (Math.random() < 0.5 ? "#f0abfc" : "#c084fc") : (Math.random() < 0.5 ? "#ffd27a" : "#ff8c3b"),
+          0.32, 4.2
+        );
+      }
     }
     if (Math.hypot(state.player.x - b.x, state.player.y - b.y) < state.player.radius + b.r && state.player.invuln <= 0) {
       state.player.hp -= b.damage;
@@ -5900,32 +5975,7 @@ function drawBullets() {
     // and a subtle scale pulse instead.
     const pulse = 1 + Math.sin(b.anim * 2.2) * 0.08;
     const size = (b.kind === "boss" ? 78 : 66) * VIEW_SCALE * pulse;
-    const projImg = projImageFor(b.kind);
-    // Additive glow core makes the projectile read as burning light.
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    const glowR = size * (0.4 + Math.sin(b.anim * 3.1) * 0.06);
-    const glow = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, glowR);
-    glow.addColorStop(0, b.kind === "boss" ? "rgba(240, 171, 252, 0.6)" : "rgba(255, 220, 140, 0.6)");
-    glow.addColorStop(1, "rgba(255, 120, 30, 0)");
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, glowR, 0, TWO_PI);
-    ctx.fill();
-    ctx.restore();
-    // Motion streak: fading afterimages behind the projectile.
-    if (projImg) {
-      const projSize = size * 1.55;
-      for (let k = 1; k <= 2; k++) {
-        drawProjSprite(projImg, 3, s.x - Math.cos(b.angle) * 14 * k * VIEW_SCALE, s.y - Math.sin(b.angle) * 14 * k * VIEW_SCALE, projSize * (1 - k * 0.2), b.angle, 0.28 / k);
-      }
-      drawProjSprite(projImg, 3, s.x, s.y, projSize, b.angle);
-    } else {
-      for (let k = 1; k <= 2; k++) {
-        drawSprite(ROW.fire, 0, s.x - Math.cos(b.angle) * 13 * k * VIEW_SCALE, s.y - Math.sin(b.angle) * 13 * k * VIEW_SCALE, size * (1 - k * 0.18), false, b.angle, 0.3 / k);
-      }
-      drawSprite(ROW.fire, 0, s.x, s.y, size, false, b.angle);
-    }
+    drawProcFireball(b, s, size);
     if (b.kind === "boss") {
       ctx.save();
       ctx.globalAlpha = 0.45;
