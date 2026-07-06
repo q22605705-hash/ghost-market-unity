@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "commercial-feel-20260707";
+const ASSET_VERSION = "clear-info-20260707";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -1753,7 +1753,7 @@ function resultHighlights(summary = state.lastRunSummary) {
     highlights.push({
       label: "記憶",
       title: `強度 ${summary.fragment.power}`,
-      body: summary.fragment.name,
+      body: "已存為碎片，可在月之庭園出戰",
       color: "#25756a"
     });
   } else if (summary.runType === "garden") {
@@ -6062,14 +6062,6 @@ function drawEnemyTelegraphs() {
       ctx.globalAlpha = 0.18 + progress * 0.42;
       ctx.fillStyle = warnColor;
       ctx.fillRect(0, -width / 2, length, width);
-      ctx.globalAlpha = 0.88;
-      ctx.strokeStyle = "#fff4d8";
-      ctx.lineWidth = Math.max(1, 2 * VIEW_SCALE);
-      ctx.beginPath();
-      ctx.moveTo(length * progress, -14 * VIEW_SCALE);
-      ctx.lineTo(length * progress + 24 * VIEW_SCALE, 0);
-      ctx.lineTo(length * progress, 14 * VIEW_SCALE);
-      ctx.stroke();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha = 0.42 + progress * 0.4;
       ctx.strokeStyle = warnColor;
@@ -6635,6 +6627,8 @@ function drawCombatRadar() {
 }
 
 function drawThreatDirectionIndicators(summary = threatSummary()) {
+  return; // Removed by request — no arrows during ranged attacks.
+  /* eslint-disable no-unreachable */
   if (!summary.nearest || !state.player) return;
   const s = worldToScreen(summary.nearest.x, summary.nearest.y);
   const offscreen = s.x < 32 || s.x > W - 32 || s.y < 32 || s.y > H - 32;
@@ -7080,8 +7074,14 @@ function drawMenuTabScrim() {
 
 function drawMemoryPanel(x, y) {
   const fragments = saveData.memoryFragments.slice(0, 5);
+  // Plain-language purpose, always visible.
+  ctx.fillStyle = "rgba(126, 218, 194, 0.10)";
+  ctx.fillRect(x - 6, y - 22, 330, 84);
+  text("記憶碎片是什麼？", x + 4, y - 2, 14, "#7fe0d4");
+  wrap("通關「記憶培育」會把本局技能組合存成碎片；「月之庭園」模式可用它直接出戰衝分。", x + 4, y + 20, 310, 14, "#d9e3df");
+  y += 84;
   if (!fragments.length) {
-    wrap("尚未取得記憶碎片。完成一次記憶培育後，會保存本局技能與強度，之後可進入月之庭園挑戰。", x, y, 310, 22, "#d9e3df");
+    wrap("尚未取得：完成一場記憶培育（75 擊殺）就會生成第一枚。", x, y + 6, 310, 15, "#a8c8c0");
     return;
   }
   const selected = selectedFragment();
