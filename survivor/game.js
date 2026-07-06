@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "living-flame-20260707";
+const ASSET_VERSION = "all-proc-vfx-20260707";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -3497,6 +3497,86 @@ function drawProcFireball(b, s, size) {
   ctx.restore();
 }
 
+// Element palettes for procedural VFX.
+const BOLT_PALETTES = {
+  fire: { core: "rgba(255,244,200,0.95)", mid: "rgba(255,178,87,0.85)", rim: "rgba(255,106,26,0)" },
+  water: { core: "rgba(235,250,255,0.95)", mid: "rgba(155,216,255,0.8)", rim: "rgba(63,169,245,0)" },
+  lightning: { core: "rgba(255,252,224,0.95)", mid: "rgba(255,243,160,0.85)", rim: "rgba(255,217,59,0)" },
+  poison: { core: "rgba(240,255,220,0.95)", mid: "rgba(183,245,110,0.8)", rim: "rgba(74,222,128,0)" },
+  shadow: { core: "rgba(245,235,255,0.9)", mid: "rgba(192,132,252,0.8)", rim: "rgba(124,58,237,0)" },
+  holy: { core: "rgba(255,255,245,0.98)", mid: "rgba(255,240,190,0.85)", rim: "rgba(255,225,138,0)" },
+  wind: { core: "rgba(240,255,250,0.95)", mid: "rgba(204,245,232,0.8)", rim: "rgba(126,218,194,0)" },
+  base: { core: "rgba(255,250,230,0.95)", mid: "rgba(255,232,173,0.8)", rim: "rgba(214,163,63,0)" }
+};
+// Player bolt: slim undulating energy teardrop + white core + element accent.
+function drawProcBolt(b, s, size) {
+  const pal = BOLT_PALETTES[b.element] || BOLT_PALETTES.base;
+  const t = b.anim;
+  const R = size * 0.2;
+  const w1 = Math.sin(t * 12.7) * 0.2 + Math.sin(t * 7.3 + 2.1) * 0.12;
+  const tail = R * (3.0 + w1 * 1.1);
+  const bw = R * (0.95 + Math.sin(t * 9.1) * 0.18);
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(b.angle);
+  ctx.globalCompositeOperation = "lighter";
+  const body = ctx.createLinearGradient(R, 0, -tail, 0);
+  body.addColorStop(0, pal.mid);
+  body.addColorStop(1, pal.rim);
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.moveTo(R, 0);
+  ctx.quadraticCurveTo(R * 0.35, -bw, -tail * 0.4, -bw * (0.5 + w1 * 0.18));
+  ctx.quadraticCurveTo(-tail, 0, -tail * 0.4, bw * (0.5 - w1 * 0.18));
+  ctx.quadraticCurveTo(R * 0.35, bw, R, 0);
+  ctx.fill();
+  const coreR = R * (0.7 + Math.sin(t * 15.3) * 0.08);
+  const core = ctx.createRadialGradient(R * 0.2, 0, 0.5, R * 0.2, 0, coreR);
+  core.addColorStop(0, pal.core);
+  core.addColorStop(1, pal.rim);
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(R * 0.2, 0, coreR, 0, TWO_PI);
+  ctx.fill();
+  // Element signature accents.
+  if (b.element === "lightning") {
+    ctx.strokeStyle = pal.core;
+    ctx.lineWidth = 1.6 * VIEW_SCALE;
+    ctx.beginPath();
+    let zx = R * 0.6;
+    ctx.moveTo(zx, 0);
+    for (let i = 1; i <= 4; i++) {
+      zx -= tail * 0.22;
+      ctx.lineTo(zx, Math.sin(t * 21 + i * 2.4) * bw * 0.7);
+    }
+    ctx.stroke();
+  } else if (b.element === "wind") {
+    ctx.strokeStyle = pal.mid;
+    ctx.lineWidth = 1.4 * VIEW_SCALE;
+    ctx.beginPath();
+    ctx.arc(-tail * 0.25, 0, bw * 0.9, t * 4.5, t * 4.5 + 2.4);
+    ctx.stroke();
+  } else if (b.element === "holy") {
+    ctx.strokeStyle = pal.core;
+    ctx.lineWidth = 1.4 * VIEW_SCALE;
+    const g = R * 1.15;
+    ctx.save();
+    ctx.rotate(t * 2.2);
+    ctx.beginPath();
+    ctx.moveTo(-g, 0); ctx.lineTo(g, 0);
+    ctx.moveTo(0, -g); ctx.lineTo(0, g);
+    ctx.stroke();
+    ctx.restore();
+  } else if (b.element === "water") {
+    ctx.strokeStyle = pal.mid;
+    ctx.lineWidth = 1.3 * VIEW_SCALE;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.arc(-tail * 0.55, 0, bw * (0.5 + ((t * 2.4) % 1) * 0.7), 0, TWO_PI);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 function drawJuice() {
   if (state.projBursts?.length) {
     for (const pb of state.projBursts) {
@@ -5252,6 +5332,12 @@ function updateBullets(dt) {
     b.y += b.vy * dt;
     b.life -= dt;
     b.anim += dt * 16;
+    if (Math.random() < dt * 26 && (state.particles?.length || 0) < 380) {
+      const sp = Math.hypot(b.vx, b.vy) || 1;
+      const dx = b.vx / sp, dy = b.vy / sp;
+      const pal = BOLT_PALETTES[b.element] || BOLT_PALETTES.base;
+      spawnTailParticle(b.x - dx * 10, b.y - dy * 10, -dx * 34 + (Math.random() - 0.5) * 22, -dy * 34 + (Math.random() - 0.5) * 22, pal.mid.replace("0.8", "0.9"), 0.26, 3.2);
+    }
     for (const e of [...state.enemies]) {
       if (Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.r) {
         damageEnemy(e, b.damage, 22, damageSourceLabelForBullet(b));
@@ -5726,12 +5812,122 @@ function companionActionMark(action) {
   return "";
 }
 
+// Procedural effect styles: every burst/field/slash is drawn live from its
+// progress (0..1), so the shape genuinely animates instead of flipping atlas
+// frames. Kinds map to a style + palette.
+const PROC_EFFECTS = {
+  fireBurst: { style: "burst", a: "rgba(255,214,107,", b: "rgba(255,106,26,", spokes: 8 },
+  frostRing: { style: "ring", a: "rgba(191,232,255,", b: "rgba(94,200,240," },
+  chainLightning: { style: "burst", a: "rgba(255,243,160,", b: "rgba(255,217,59,", spokes: 6 },
+  thunderCrit: { style: "burst", a: "rgba(255,251,224,", b: "rgba(255,225,74,", spokes: 10 },
+  poisonMist: { style: "field", a: "rgba(167,243,208,", b: "rgba(74,222,128," },
+  corrosionSeal: { style: "burst", a: "rgba(217,249,157,", b: "rgba(132,204,22,", spokes: 6 },
+  soulSlash: { style: "slash", a: "rgba(159,240,224,", b: "rgba(126,218,194," },
+  voidRift: { style: "implode", a: "rgba(216,180,254,", b: "rgba(168,85,247," },
+  holyWard: { style: "ring", a: "rgba(255,243,196,", b: "rgba(255,225,138," },
+  goldenShield: { style: "ring", a: "rgba(255,243,196,", b: "rgba(255,225,138," },
+  divineJudgment: { style: "burst", a: "rgba(255,237,176,", b: "rgba(255,215,0,", spokes: 12 },
+  cycloneBlade: { style: "field", a: "rgba(204,245,232,", b: "rgba(126,218,194," },
+  splittingGale: { style: "burst", a: "rgba(216,255,242,", b: "rgba(142,240,208,", spokes: 7 },
+  meteorSeal: { style: "field", a: "rgba(255,201,163,", b: "rgba(255,140,66," }
+};
 function drawSkillEffect(kind, frame, x, y, size = 128, angle = 0, alpha = 1) {
-  const def = EFFECT_DEFS[kind] || EFFECT_DEFS.fireBurst;
-  const image = vfxSheetImage(def.sheet);
-  if (!drawVfxFrame(image, def.row, frame, x, y, size, angle, alpha, VFX_CELL)) {
-    drawSprite(ROW.fire, frame % 12, x, y, size, false, angle, alpha, 64, 64);
+  const def = PROC_EFFECTS[kind] || PROC_EFFECTS.fireBurst;
+  const p = Math.min(1, Math.max(0, frame / 11));
+  const r = size * 0.5;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalCompositeOperation = "lighter";
+  if (def.style === "burst") {
+    // expanding ring
+    ctx.globalAlpha = alpha * (1 - p);
+    ctx.strokeStyle = def.b + "0.9)";
+    ctx.lineWidth = Math.max(1.5, 5 * (1 - p)) * VIEW_SCALE;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * (0.2 + 0.8 * p), 0, TWO_PI);
+    ctx.stroke();
+    // radial spokes shooting out
+    ctx.strokeStyle = def.a + (0.85 * (1 - p)) + ")";
+    ctx.lineWidth = 2.2 * VIEW_SCALE;
+    for (let i = 0; i < (def.spokes || 8); i++) {
+      const sa = angle + (i / (def.spokes || 8)) * TWO_PI;
+      const inner = r * (0.1 + 0.55 * p);
+      const outer = r * (0.25 + 0.75 * p);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(sa) * inner, Math.sin(sa) * inner);
+      ctx.lineTo(Math.cos(sa) * outer, Math.sin(sa) * outer);
+      ctx.stroke();
+    }
+    // hot core shrinking away
+    const core = ctx.createRadialGradient(0, 0, 0.5, 0, 0, r * 0.3 * (1 - p) + 1);
+    core.addColorStop(0, def.a + (0.95 * (1 - p)) + ")");
+    core.addColorStop(1, def.b + "0)");
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.3 * (1 - p) + 1, 0, TWO_PI);
+    ctx.fill();
+  } else if (def.style === "ring") {
+    ctx.globalAlpha = alpha * (1 - p);
+    ctx.strokeStyle = def.a + "0.9)";
+    ctx.lineWidth = 3.5 * VIEW_SCALE;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * (0.3 + 0.7 * p), 0, TWO_PI);
+    ctx.stroke();
+    ctx.strokeStyle = def.b + "0.7)";
+    ctx.lineWidth = 2 * VIEW_SCALE;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * (0.18 + 0.6 * p), 0, TWO_PI);
+    ctx.stroke();
+  } else if (def.style === "implode") {
+    // ring collapsing inward with a darkening core
+    ctx.globalAlpha = alpha * Math.sin(p * Math.PI);
+    ctx.strokeStyle = def.b + "0.85)";
+    ctx.lineWidth = 3.5 * VIEW_SCALE;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * (1 - 0.75 * p), 0, TWO_PI);
+    ctx.stroke();
+    const core = ctx.createRadialGradient(0, 0, 0.5, 0, 0, r * 0.4 * p + 1);
+    core.addColorStop(0, def.a + "0.8)");
+    core.addColorStop(1, def.b + "0)");
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.4 * p + 1, 0, TWO_PI);
+    ctx.fill();
+  } else if (def.style === "slash") {
+    // sweeping crescent arc
+    const sweepStart = angle - 1.2 + p * 2.2;
+    ctx.globalAlpha = alpha * (1 - p);
+    ctx.strokeStyle = def.a + "0.95)";
+    ctx.lineWidth = Math.max(2, 7 * (1 - p * 0.6)) * VIEW_SCALE;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.72, sweepStart, sweepStart + 1.5);
+    ctx.stroke();
+    ctx.strokeStyle = def.b + "0.5)";
+    ctx.lineWidth = 11 * VIEW_SCALE * (1 - p * 0.5);
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.6, sweepStart - 0.3, sweepStart + 1.1);
+    ctx.stroke();
+  } else { // field
+    ctx.globalAlpha = alpha * Math.sin(p * Math.PI);
+    const disc = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r);
+    disc.addColorStop(0, def.a + "0.5)");
+    disc.addColorStop(1, def.b + "0)");
+    ctx.fillStyle = disc;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, TWO_PI);
+    ctx.fill();
+    ctx.strokeStyle = def.b + "0.6)";
+    ctx.lineWidth = 2.2 * VIEW_SCALE;
+    for (let i = 0; i < 3; i++) {
+      const sa = p * 5 + (i / 3) * TWO_PI;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * (0.45 + i * 0.16), sa, sa + 1.7);
+      ctx.stroke();
+    }
   }
+  ctx.restore();
 }
 
 function drawUpgradeIcon(icon, x, y, size = 74) {
@@ -5956,17 +6152,7 @@ function drawEnemyAura(e, s, size) {
 function drawBullets() {
   for (const b of state.bullets) {
     const s = worldToScreen(b.x, b.y);
-    drawElementTrail(b, s);
-    const row = ELEMENT_VFX_ROW[b.element];
-    const frame = Math.floor(b.anim) % 12;
-    const size = 86 * state.stats.area * VIEW_SCALE;
-    if (Number.isInteger(row)) {
-      if (!drawVfxFrame(vfxTags, row, frame, s.x, s.y, size, b.angle, 1, VFX_CELL)) {
-        drawSprite(ROW.talismanBlade, frame, s.x, s.y, 62 * state.stats.area * VIEW_SCALE, false, b.angle);
-      }
-    } else {
-      drawSprite(ROW.talismanBlade, frame, s.x, s.y, 62 * state.stats.area * VIEW_SCALE, false, b.angle);
-    }
+    drawProcBolt(b, s, 86 * state.stats.area * VIEW_SCALE);
   }
   for (const b of state.enemyBullets) {
     const s = worldToScreen(b.x, b.y);
@@ -6187,7 +6373,31 @@ function drawOrbitBlades() {
   for (let i = 0; i < state.stats.blades; i++) {
     const a = state.time * 3.2 + (i / state.stats.blades) * TWO_PI;
     const s = worldToScreen(p.x + Math.cos(a) * radius, p.y + Math.sin(a) * radius);
-    drawSprite(ROW.talismanBlade, Math.floor(state.time * 12 + i) % 12, s.x, s.y, 54 * state.stats.area * VIEW_SCALE, false, a);
+    const R = 22 * state.stats.area * VIEW_SCALE;
+    const flick = 1 + Math.sin(state.time * 17 + i * 2.6) * 0.12;
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(a + Math.PI / 2);
+    ctx.globalCompositeOperation = "lighter";
+    // Crescent blade: bright leading edge, fading inner arc.
+    ctx.strokeStyle = "rgba(126, 218, 194, 0.9)";
+    ctx.lineWidth = 4.5 * VIEW_SCALE * flick;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.arc(0, 0, R, -0.9, 0.9);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255, 244, 216, 0.85)";
+    ctx.lineWidth = 2 * VIEW_SCALE;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 1.06, -0.6, 0.6);
+    ctx.stroke();
+    // Motion trail arc behind the blade.
+    ctx.strokeStyle = "rgba(126, 218, 194, 0.28)";
+    ctx.lineWidth = 6 * VIEW_SCALE;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.92, -2.2, -1.0);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
