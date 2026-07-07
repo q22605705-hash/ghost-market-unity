@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "clear-info-20260707";
+const ASSET_VERSION = "no-aim-20260707";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -6028,19 +6028,7 @@ function drawEnemyTelegraphs() {
       const os = worldToScreen(e.mirrorCast.ox, e.mirrorCast.oy);
       const ps = worldToScreen(state.player.x, state.player.y);
       ctx.save();
-      ctx.globalAlpha = 0.35 + progress * 0.4;
-      ctx.strokeStyle = "#5eead4";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(es.x, es.y - 20 * VIEW_SCALE);
-      ctx.lineTo(os.x, os.y);
-      ctx.stroke();
-      ctx.strokeStyle = "#fbbf24";
-      ctx.lineWidth = 2 + progress * 2;
-      ctx.beginPath();
-      ctx.moveTo(os.x, os.y);
-      ctx.lineTo(ps.x, ps.y);
-      ctx.stroke();
+      // No aiming lines — only the glowing spawn marker.
       ctx.fillStyle = "#fbbf24";
       ctx.globalAlpha = 0.5 + progress * 0.4;
       ctx.beginPath();
@@ -6052,17 +6040,9 @@ function drawEnemyTelegraphs() {
     const s = worldToScreen(e.x, e.y);
     ctx.save();
     if (e.castT > 0) {
+      // No aiming beam — just a charge glow on the caster.
       const progress = clamp(1 - e.castT / Math.max(0.01, e.castMax || e.castT), 0, 1);
-      const length = (e.kind === "boss" ? 520 : 420) * VIEW_SCALE;
-      const width = (e.kind === "boss" ? 15 : 10) * VIEW_SCALE;
-      const angle = Number.isFinite(e.castAngle) ? e.castAngle : 0;
       const warnColor = e.kind === "boss" ? "#f0abfc" : "#f9a8d4";
-      ctx.translate(s.x, s.y - 34 * VIEW_SCALE);
-      ctx.rotate(angle);
-      ctx.globalAlpha = 0.18 + progress * 0.42;
-      ctx.fillStyle = warnColor;
-      ctx.fillRect(0, -width / 2, length, width);
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha = 0.42 + progress * 0.4;
       ctx.strokeStyle = warnColor;
       ctx.lineWidth = 3;
@@ -6079,15 +6059,7 @@ function drawEnemyTelegraphs() {
       ctx.beginPath();
       ctx.arc(s.x, s.y - 42 * VIEW_SCALE, r, 0, TWO_PI);
       ctx.stroke();
-      if (e.specialCast.pattern === "radial") {
-        for (let i = 0; i < 14; i++) {
-          const a = (i / 14) * TWO_PI + state.time * 0.35;
-          ctx.beginPath();
-          ctx.moveTo(s.x, s.y - 42 * VIEW_SCALE);
-          ctx.lineTo(s.x + Math.cos(a) * r, s.y - 42 * VIEW_SCALE + Math.sin(a) * r);
-          ctx.stroke();
-        }
-      }
+      // (spoke rays removed — the warning ring alone marks the burst)
     }
     ctx.restore();
   }
