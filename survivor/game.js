@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "minimal-hud-20260708";
+const ASSET_VERSION = "combo-poses-20260708";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -4613,6 +4613,7 @@ function updatePlayer(dt) {
   if (p.shootT <= 0) {
     fireAtNearest();
     p.attackT = HERO_ANIM.attack;
+    p.attackPose = ((p.attackPose || 0) + 1) % 4; // combo: next pose each shot
     p.shootT = state.stats.fireRate * (state.stats.bloodFrenzy > 0 ? 0.72 : 1);
   }
   p.anim += dt * (moving ? 8 : 4);
@@ -5761,7 +5762,7 @@ function drawPlayer() {
       frame = heroFrameFromTimer(p.dashAnimT, HERO_ANIM.dash);
     } else if ((p.attackT || 0) > 0) {
       row = HERO_ROWS.attack;
-      frame = heroFrameFromTimer(p.attackT, HERO_ANIM.attack);
+      frame = (p.attackPose || 0) * 3; // combo pose block
     } else {
       row = moving ? HERO_ROWS.run : HERO_ROWS.idle;
       frame = animFrame;
@@ -9729,7 +9730,7 @@ window.debug_kill_enemy_kind = (kind = "bomber") => {
 window.debug_player_anim = (kind = "attack") => {
   if (!state.player) resetGame();
   if (state.mode !== "playing") state.mode = "playing";
-  if (kind === "attack") state.player.attackT = HERO_ANIM.attack;
+  if (kind === "attack") { state.player.attackT = HERO_ANIM.attack; state.player.attackPose = ((state.player.attackPose || 0) + 1) % 4; }
   else if (kind === "hit") state.player.hurtT = HERO_ANIM.hit;
   else if (kind === "dash") state.player.dashAnimT = HERO_ANIM.dash;
   draw();

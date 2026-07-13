@@ -180,6 +180,28 @@ for (let r = 0; r < ROWS; r++) {
     chain.push(next);
     used.add(next);
   }
+  if (ROW_NAMES[r] === "attack") {
+    // Combo pose layout: pick 4 maximally-distinct poses (farthest-point
+    // sampling from the medoid) and lay them out as 4 blocks of 3 identical
+    // frames. The runtime cycles one block per shot — pose variety instead of
+    // (impossible) frame animation.
+    const poses = [medoid];
+    while (poses.length < 4) {
+      let best = -1, bestScore = -1;
+      for (let i = 0; i < COLS; i++) {
+        if (poses.includes(i)) continue;
+        const score = Math.min(...poses.map((q) => D[i][q]));
+        if (score > bestScore) { bestScore = score; best = i; }
+      }
+      if (best < 0) break;
+      poses.push(best);
+    }
+    const seq = [];
+    for (let i = 0; i < COLS; i++) seq.push(poses[Math.floor(i / 3) % poses.length]);
+    rowsFrames[r] = seq.map((idx) => frames[idx]);
+    stabilized[ROW_NAMES[r]] = { poses, medoid, comboBlocks: 4 };
+    continue;
+  }
   // Ping-pong sequence tiled into the 12 slots.
   const pingpong = [...chain, ...chain.slice(1, -1).reverse()];
   const seq = [];
