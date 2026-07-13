@@ -9764,6 +9764,14 @@ window.debug_set_run_type = (runType = "cultivation") => {
   return window.render_game_to_text();
 };
 
+window.debug_teleport_player = (dx = 800, dy = 800) => {
+  if (!state.player) return null;
+  state.player.x = clamp(state.player.x + dx, 30, WORLD_W - 30);
+  state.player.y = clamp(state.player.y + dy, 30, WORLD_H - 30);
+  draw();
+  return window.render_game_to_text();
+};
+
 window.debug_move_player_to_bind_seal = () => {
   if (!state.player) return null;
   const seal = state.hazards.find((h) => h.kind === "bindSeal");

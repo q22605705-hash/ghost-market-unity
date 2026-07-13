@@ -406,10 +406,23 @@ async function heroAnim(page) {
     throw new Error(`Dash animation did not trigger: ${JSON.stringify(dash.player.heroAnim)}`);
   }
 
-  // The one-shot hit/dash timers should decay back toward idle after time passes
-  // (attack legitimately re-arms while the player keeps auto-firing at nearby enemies).
-  await page.evaluate(() => window.advanceTime(500));
-  const settled = JSON.parse(await page.evaluate(() => window.render_game_to_text()));
+  // The one-shot hit/dash timers should decay back toward idle after time
+  // passes. Teleport away first — adjacent enemies re-trigger the hit
+  // animation on contact (correct game behaviour), and hitstop slows decay.
+  await page.evaluate(() => window.debug_teleport_player(1200, 1200));
+  // Hitstop (state.freeze) pauses the whole world 0.025s per bullet hit — an
+  // intentional game-feel feature — so advance in slices until decayed.
+  let settled;
+  for (let i = 0; i < 8; i++) {
+    await page.evaluate(() => window.advanceTime(400));
+    settled = JSON.parse(await page.evaluate(() => window.render_game_to_text()));
+    if (settled.mode === "level") {
+      const idx = settled.levelChoice?.recommended?.index ?? 0;
+      await page.evaluate((k) => window.debug_choose_upgrade(k), idx);
+      continue;
+    }
+    if ((settled.player.heroAnim.hit || 0) === 0 && (settled.player.heroAnim.dash || 0) === 0) break;
+  }
   if ((settled.player.heroAnim.hit || 0) > 0 || (settled.player.heroAnim.dash || 0) > 0) {
     throw new Error(`Hero one-shot timers did not decay: ${JSON.stringify(settled.player.heroAnim)}`);
   }
