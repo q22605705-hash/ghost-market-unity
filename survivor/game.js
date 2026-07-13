@@ -9,7 +9,7 @@ const WORLD_H = 1800;
 const SPRITE = 128;
 const TWO_PI = Math.PI * 2;
 const VIEW_SCALE = 0.68;
-const ASSET_VERSION = "no-aim-20260707";
+const ASSET_VERSION = "minimal-hud-20260708";
 const SAVE_KEY = "ghost-market-memory-save-v1";
 
 const GAME_CONFIG = {
@@ -6421,37 +6421,26 @@ function drawHud() {
   const phase = currentStagePhase();
   const readout = combatReadoutSummary();
   const focus = state.storyFocus || storyRunFocus();
-  // Lighter fill than the shared panel(): this is the biggest HUD block and
-  // the battlefield should stay visible through it.
-  ctx.fillStyle = "rgba(5, 10, 13, 0.55)";
-  ctx.fillRect(18, 16, 500, 156);
-  ctx.strokeStyle = "rgba(49, 68, 74, 0.8)";
+  // Minimal HUD: level, timer, and the three bars. Everything the world
+  // already shows (enemy/boss HP over heads, kill objective in pause) is out.
+  ctx.fillStyle = "rgba(5, 10, 13, 0.5)";
+  ctx.fillRect(18, 16, 300, 96);
+  ctx.strokeStyle = "rgba(49, 68, 74, 0.7)";
   ctx.lineWidth = 2;
-  ctx.strokeRect(18, 16, 500, 156);
-  text(`WAVE ${Math.max(1, Math.ceil(state.kills / 20))}`, 34, 40, 20, "#fff4d8");
-  text(`Lv.${state.level}`, 146, 40, 18);
-  text(`${state.runType === "garden" ? "月庭" : "培育"} ${state.kills}/${state.targetKills}`, 232, 40, 18, "#d9e3df");
-  text(formatTime(state.time), 430, 40, 18, "#ffe8ad");
-  bar(34, 66, 184, 12, p.hp / state.stats.maxHp, "#f04452");
-  bar(34, 94, 184, 12, p.dashT <= 0 ? 1 : 1 - p.dashT / state.stats.dashCooldown, "#47d7ff");
-  bar(248, 94, 230, 12, state.runType === "garden" ? Math.min(1, gardenScore() / Math.max(1, saveData.bestGarden || 3000)) : state.xp / state.xpNeed, "#67f070");
-  text("生命", 34, 58, 14);
-  text("閃避", 34, 86, 14);
-  text(state.runType === "garden" ? `分數 ${gardenScore()}` : `魂火 ${Math.floor(state.xp)}/${state.xpNeed}`, 248, 86, 14);
-  const elementIconShown = state.stats.element && drawUiIcon(state.stats.element, 240, 110, 20);
-  text(`${elementName(state.stats.element)} · ${selectedEquipment().name}`, elementIconShown ? 256 : 248, 114, 14, elementColor(state.stats.element));
-  text(readout.line, 34, 132, 13, elementColor(readout.element));
-  text(readout.subline, 248, 132, 13, readout.challenge?.done ? "#ffe18a" : "#a8c8c0");
-  text(`主線焦點：${focus.title} ${focus.progress}`, 34, 152, 13, focus.color || "#ffe18a");
-  text(fitText(focus.objective, 210, 12), 248, 152, 12, "#a8c8c0");
-  if (p.hp / Math.max(1, state.stats.maxHp) < 0.32) text("低生命：拉開距離，保留閃避", 34, 190, 15, "#ffb4a8");
+  ctx.strokeRect(18, 16, 300, 96);
+  text(`Lv.${state.level}`, 34, 40, 18, "#fff4d8");
+  text(formatTime(state.time), 246, 40, 16, "#ffe8ad");
+  if (state.runType === "garden") text(`分數 ${gardenScore()}`, 110, 40, 14, "#9fd8d0");
+  bar(34, 54, 250, 11, p.hp / state.stats.maxHp, "#f04452");
+  bar(34, 72, 250, 8, state.xp / state.xpNeed, "#67f070");
+  bar(34, 88, 120, 7, p.dashT <= 0 ? 1 : 1 - p.dashT / state.stats.dashCooldown, "#47d7ff");
+  const elementIconShown = state.stats.element && drawUiIcon(state.stats.element, 170, 92, 18);
+  if (p.hp / Math.max(1, state.stats.maxHp) < 0.32) text("低生命！", 200, 96, 13, "#ffb4a8");
   drawPlayerStatusIcons(p);
   if (state.mode === "playing") {
-    drawCombatTracker();
     if ((state.buildPanelT || 0) > 0 || buildProgressSummary().nextEvolution?.readyNext) drawBuildProgressPanel();
     drawCombatRadar();
     drawPhaseBanner(phase);
-    drawBossHud();
     drawThreatWarning();
     drawCombatMedals();
   }
@@ -6788,7 +6777,7 @@ function drawTutorialHint() {
 
 function drawPhaseBanner(phase) {
   if (state.milestoneBanner?.t > 0) return; // avoid stacking on the milestone banner
-  if (bossHudSummary()) return; // the boss HP bar takes this slot during boss fights
+  if (state.phaseNoticeT <= 0) return; // only flash briefly on phase change
   ctx.save();
   const alert = state.phaseNoticeT > 0;
   ctx.fillStyle = alert ? "rgba(118, 47, 62, 0.78)" : "rgba(5, 10, 13, 0.58)";
